@@ -129,6 +129,6 @@ app.get("/", (req, res) => {
   res.send("Welcome to sab sunno");
 });
 
-server.listen(8000, () => {
+server.listen(process.env.PORT || 8000, () => {
   console.log("Server started at port 8000");
 });
