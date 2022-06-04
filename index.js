@@ -8,7 +8,7 @@ require('dotenv').config();
 const server = require("http").createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: process.env.FRONT_URL,
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -17,7 +17,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: process.env.FRONT_URL,
+    origin: "*",
     methods: ["GET", "POST"],
   })
 );
@@ -129,6 +129,6 @@ app.get("/", (req, res) => {
   res.send("Welcome to sab sunno");
 });
 
-server.listen(process.env.PORT || 8000, () => {
-  console.log("Server started at port 8000");
+server.listen(process.env.PORT, () => {
+  console.log(`Server started at port ${process.env.PORT}`);
 });
