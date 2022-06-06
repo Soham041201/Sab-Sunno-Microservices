@@ -127,4 +127,18 @@ router.get("/room/:roomId/:userId", async (req, res) => {
   }
   return res.status(400).send({ message: "Something went wrong" });
 });
+
+router.delete("/room/:roomId", (req, res) => {
+  const { roomId } = req.params;
+  const o_roomId = new ObjectId(roomId);
+  const room = Room.findOneAndDelete({ _id: o_roomId });
+  if (room) {
+    return res.send({
+      message: "Room deleted",
+      room: room,
+    });
+  }
+  return res.status(400).send({ message: "Something went wrong" });
+});
+
 module.exports = router;
