@@ -4,11 +4,11 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const { ObjectId } = require("mongodb");
-require('dotenv').config();
+require("dotenv").config();
 const server = require("http").createServer(app);
 const io = require("socket.io")(server, {
   cors: {
-    origin: "*",
+    origin: "https://main--splendid-dasik-09a897.netlify.app",
     methods: ["GET", "POST"],
   },
 });
@@ -17,8 +17,8 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST","PUT","DELETE"],
+    origin: "https://main--splendid-dasik-09a897.netlify.app",
+    methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
 
