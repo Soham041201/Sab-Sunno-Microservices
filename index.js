@@ -34,7 +34,7 @@ io.on("connection", (socket) => {
     });
 
     socketUserMapping[socket.id] = user;
-
+    
     const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
 
     const users = clients.map((client) => {
@@ -100,12 +100,13 @@ io.on("connection", (socket) => {
   });
 
   const leaveRoom = () => {
+    console.log("============Socket leave=============");
     const { rooms } = socket;
 
     Array.from(rooms).forEach(async (roomId) => {
       const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
 
-      clients.forEach((clientId) => {
+      clients.forEach((clientId) => { 
         io.to(clientId).emit("remove-peer", {
           peerId: socket.id,
           user: socketUserMapping[socket.id]?._id,
