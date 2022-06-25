@@ -5,7 +5,15 @@ const router = require("express").Router();
 
 router.post("/register", async (req, res) => {
   console.log(req.body);
-  const { firstName, lastName, email, password, username, photoURL } = req.body;
+  const {
+    firstName,
+    lastName,
+    email,
+    password,
+    username,
+    photoURL,
+    isAuthenticated,
+  } = req.body;
 
   const user = await Users.findOne({ email: email });
   // console.log("=======================User Data======================");
@@ -18,6 +26,7 @@ router.post("/register", async (req, res) => {
       password: password,
       username: username,
       photoURL: photoURL,
+      isAuthenticated: false,
     });
     if (user) {
       return res.send({
@@ -81,6 +90,45 @@ router.get("/user/:userId", async (req, res) => {
   res.status(400).send({ message: "User not found" });
 });
 
+router.put("/user/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { username, photoURL} = req.body;
+  const o_userId = new ObjectId(userId);
+  const user = await Users.findOneAndUpdate(
+    { _id: o_userId },
+    {
+      $set: {
+        username: "@" + username,
+        photoURL: photoURL,
+        isAuthenticated: true,
+      },
+    }
+  );
+  if (user) {
+    return res.status(200).send({
+      message: "User updated",
+      user: user,
+    });
+  }
+  res.status(400).send({ message: "User not found" });
+});
+
+router.put("/user/update/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const  user  = req.body;
+  console.log("user" , user);
+  const o_userId = new ObjectId(userId);
+  const userD = await Users.findOneAndUpdate({ _id: o_userId }, user);
+  if (userD) {
+    console.log(userD);
+    return res.status(200).send({
+      message: "User updated",
+      user: userD,
+    });
+  }
+  res.status(400).send({ message: "User not found" });
+});
+
 router.get("/rooms", async (req, res) => {
   const rooms = await Room.find();
   res.send({ message: "List of rooms", rooms: rooms });
@@ -128,11 +176,11 @@ router.get("/room/:roomId/:userId", async (req, res) => {
   return res.status(400).send({ message: "Something went wrong" });
 });
 
-router.delete("/room/:roomId", async(req, res) => {
+router.delete("/room/:roomId", async (req, res) => {
   const { roomId } = req.params;
   const o_roomId = new ObjectId(roomId);
   const room = await Room.findOneAndDelete({ _id: o_roomId });
-  
+
   if (room) {
     return res.send({
       message: "Room deleted",
