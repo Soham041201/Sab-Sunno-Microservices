@@ -9,7 +9,7 @@ const server = require("http").createServer(app);
 
 const io = require("socket.io")(server, {
   cors: {
-    origin: process.env.FRONT_END_URL,
+    origin: 'https://splendid-dasik-09a897.netlify.app',
     methods: ["GET", "POST"],
   },
 });
@@ -18,7 +18,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: process.env.FRONT_END_URL,
+    origin: 'https://splendid-dasik-09a897.netlify.app',
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
