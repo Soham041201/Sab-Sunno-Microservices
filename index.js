@@ -6,9 +6,10 @@ const cors = require("cors");
 const { ObjectId } = require("mongodb");
 require("dotenv").config();
 const server = require("http").createServer(app);
+
 const io = require("socket.io")(server, {
   cors: {
-    origin: "https://main--splendid-dasik-09a897.netlify.app",
+    origin: 'https://splendid-dasik-09a897.netlify.app',
     methods: ["GET", "POST"],
   },
 });
@@ -17,7 +18,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "https://main--splendid-dasik-09a897.netlify.app",
+    origin: 'https://splendid-dasik-09a897.netlify.app',
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
@@ -34,7 +35,7 @@ io.on("connection", (socket) => {
     });
 
     socketUserMapping[socket.id] = user;
-    
+
     const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
 
     const users = clients.map((client) => {
@@ -106,7 +107,7 @@ io.on("connection", (socket) => {
     Array.from(rooms).forEach(async (roomId) => {
       const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
 
-      clients.forEach((clientId) => { 
+      clients.forEach((clientId) => {
         io.to(clientId).emit("remove-peer", {
           peerId: socket.id,
           user: socketUserMapping[socket.id]?._id,
