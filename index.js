@@ -27,7 +27,7 @@ const socketUserMapping = {};
 
 io.on("connection", (socket) => {
   console.log("============Socket connected=============", socket.id);
-  socket.emit("socketId",{
+  socket.emit("connect",{
     socketId: socket.id,
   });
   socket.on("join", async ({ roomId, user }) => {
