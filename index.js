@@ -6,7 +6,7 @@ const cors = require("cors");
 const { ObjectId } = require("mongodb");
 require("dotenv").config();
 const server = require("http").createServer(app);
-const chatServer = require("./chatServer");
+const chatServer = require("./SunnoChat/chatServer");
 
 const io = require("socket.io")(server, {
   cors: {
