@@ -122,6 +122,10 @@ io.on("connection", (socket) => {
   socket.on("leave", leaveRoom);
 
   socket.on("disconnecting", leaveRoom);
+
+  socket.on("disconnect", () => {
+    console.log("============Socket disconnected=============");
+  })
 });
 
 db_connection();
