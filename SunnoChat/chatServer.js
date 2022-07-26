@@ -4,3 +4,5 @@ function chatServer(socket){
         console.log(data);
     });
 }
+
+module.exports = chatServer;
