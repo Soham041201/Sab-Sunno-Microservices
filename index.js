@@ -10,7 +10,7 @@ const chatServer = require("./SunnoChat/chatServer");
 
 const io = require("socket.io")(server, {
   cors: {
-    origin: 'https://main--splendid-dasik-09a897.netlify.app',
+    origin: "https://main--splendid-dasik-09a897.netlify.app",
     methods: ["GET", "POST"],
   },
 });
@@ -19,7 +19,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: 'https://main--splendid-dasik-09a897.netlify.app',
+    origin: "https://main--splendid-dasik-09a897.netlify.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
@@ -28,7 +28,7 @@ const socketUserMapping = {};
 
 io.on("connection", (socket) => {
   console.log("============Socket connected=============", socket.id);
-  chatServer(socket);
+  chatServer(socket, io);
   socket.on("join", async ({ roomId, user }) => {
     console.log("============Socket join=============", {
       roomId,
@@ -125,7 +125,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("============Socket disconnected=============");
-  })
+  });
 });
 
 db_connection();
