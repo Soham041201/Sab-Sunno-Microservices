@@ -7,7 +7,7 @@ function chatServer(socket,io){
     socket.on('chat-join',(data)=>{
         console.log(data + socket.id);
         socket.join('chat-room');
-        console.log(users);
+        console.log("Clients connected", clients);
         clients.map((user)=>{
             if(user != socket.id){
                 io.to(user).emit('chat-connected',{
