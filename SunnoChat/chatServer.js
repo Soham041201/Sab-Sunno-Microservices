@@ -1,8 +1,10 @@
 
+users= new Set()
+
 function chatServer(socket,io,users){
     socket.on('chat-join',(data)=>{
         console.log(data + socket.id);
-        users.push(socket.id);
+        users.add(socket.id)
         console.log(users);
         users.map((user)=>{
             if(user != socket.id){

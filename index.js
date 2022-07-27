@@ -29,8 +29,9 @@ const socketUserMapping = {};
 
 io.on("connection", (socket) => {
   console.log("============Socket connected=============", socket.id);
-  const chatUsers = []
-  chatServer(socket, io,chatUsers);
+
+  chatServer(socket, io);
+    
   socket.on("join", async ({ roomId, user }) => {
     console.log("============Socket join=============", {
       roomId,
