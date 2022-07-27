@@ -17,10 +17,10 @@ function chatServer(socket, io) {
 
   socket.on("send-message", (data) => {
     console.log(data);
-    io.to(socket.id).emit("receive-message", {
+    io.to(socket.id).emit("receive-message",JSON.stringify({
       message: data,
       sender: socket.id,
-    });
+    }));
   })
 
 
