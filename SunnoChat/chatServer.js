@@ -19,7 +19,7 @@ function chatServer(socket, io) {
     console.log("=====================send-message====================");
     data = JSON.parse(data);
     console.log({message : data.message, reciever : data.reciever});
-    io.to("chat-room").emit("recieve-message",JSON.stringify({
+    io.to(data.reciever).emit("recieve-message",JSON.stringify({
       message: data.message,
       sender: socket.id,
     }));
