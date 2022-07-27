@@ -17,7 +17,7 @@ function chatServer(socket, io) {
 
   socket.on("send-message", (data) => {
     console.log(data);
-    io.to("chat-room").emit("receive-message", {
+    io.to(socket.id).emit("receive-message", {
       message: data,
       sender: socket.id,
     });
