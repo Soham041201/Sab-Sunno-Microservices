@@ -17,7 +17,7 @@ function chatServer(socket, io) {
 
   socket.on("send-message", (data) => {
     console.log(data);
-    io.to(data.reciever).emit("receive-message",JSON.stringify({
+    io.to(data.reciever).emit("recieve-message",JSON.stringify({
       message: data.message,
       sender: socket.id,
     }));
