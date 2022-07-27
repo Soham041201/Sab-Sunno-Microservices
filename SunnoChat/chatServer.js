@@ -7,10 +7,10 @@ function chatServer(socket, io) {
     console.log("Clients connected", clients);
     clients.map((user) => {
       if (user != socket.id) {
-        io.to(user).emit("chat-connected", {
+        io.to(user).emit("chat-connected", JSON.stringify({
           connectedUser: socket.id,
           message: "connected",
-        });
+        }));
       }
     });
   });
