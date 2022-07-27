@@ -1,10 +1,10 @@
 
-userSocketMapping= {}
+users = []
 
 function chatServer(socket,io){
     socket.on('chat-join',(data)=>{
         console.log(data + socket.id);
-        userSocketMapping[socket.id] = socket.id;
+        !users.includes(socket.id) && users.push(socket.id);
         console.log(users);
         users.map((user)=>{
             if(user != socket.id){
@@ -15,8 +15,10 @@ function chatServer(socket,io){
             }
         })
     });
+
     socket.on("disconnect", () => {
-      console.log("============Socket disconnected=============");
+        console.log("============Socket disconnected=============", socket.id);
+        users.remove(socket.id);
     });
 }
 
