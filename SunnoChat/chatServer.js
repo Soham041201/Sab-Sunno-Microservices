@@ -1,6 +1,5 @@
-const users = []
 
-function chatServer(socket,io){
+function chatServer(socket,io,users){
     socket.on('chat-join',(data)=>{
         console.log(data + socket.id);
         users.push(socket.id);

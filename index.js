@@ -26,9 +26,11 @@ app.use(
 
 const socketUserMapping = {};
 
+
 io.on("connection", (socket) => {
   console.log("============Socket connected=============", socket.id);
-  chatServer(socket, io);
+  const chatUsers = []
+  chatServer(socket, io,chatUsers);
   socket.on("join", async ({ roomId, user }) => {
     console.log("============Socket join=============", {
       roomId,
