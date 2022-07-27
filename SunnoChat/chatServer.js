@@ -1,12 +1,14 @@
 
-users = []
+
 
 function chatServer(socket,io){
+    const clients = Array.from(io.sockets.adapter.rooms.get('chat-room') || []);
+    
     socket.on('chat-join',(data)=>{
         console.log(data + socket.id);
-        !users.includes(socket.id) && users.push(socket.id);
+        socket.join('chat-room');
         console.log(users);
-        users.map((user)=>{
+        clients.map((user)=>{
             if(user != socket.id){
                 io.to(user).emit('chat-connected',{
                     connectedUser:socket.id,
@@ -18,7 +20,7 @@ function chatServer(socket,io){
 
     socket.on("disconnect", () => {
         console.log("============Socket disconnected=============", socket.id);
-        users.remove(socket.id);
+        socket.leave('chat-room');
     });
 }
 
