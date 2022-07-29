@@ -6,19 +6,15 @@ const userSchema = new mongoose.Schema({
   },
   firstName: {
     type: String,
-    required: true,
   },
   lastName: {
     type: String,
-    required: true,
   },
   email: {
     type: String,
-    required: true,
   },
   password: {
     type: String,
-    required: true,
   },
   username: {
     type: String,
@@ -28,7 +24,6 @@ const userSchema = new mongoose.Schema({
   },
   isAuthenticated: {
     type: Boolean,
-    required: true,
   },
   about:{
     type: String
