@@ -30,8 +30,8 @@ function chatServer(socket, io) {
   })
 
   socket.on('leave-chat',()=>{
-    console.log("============Socket left the chat=============");
-      socket.leave(roomId);
+    console.log("============Socket left the chat=============",socket.id);
+      socket.leave("chat-room");
   })
 
   socket.on("disconnect", () => {
