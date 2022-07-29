@@ -12,6 +12,7 @@ router.post("/register", async (req, res) => {
     password,
     username,
     photoURL,
+    phoneNumber,
     isAuthenticated,
   } = req.body;
 
@@ -27,6 +28,7 @@ router.post("/register", async (req, res) => {
       username: username,
       photoURL: photoURL,
       isAuthenticated: false,
+      phoneNumber: phoneNumber,
     });
     if (user) {
       return res.send({

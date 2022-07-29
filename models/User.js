@@ -25,9 +25,16 @@ const userSchema = new mongoose.Schema({
   isAuthenticated: {
     type: Boolean,
   },
-  about:{
-    type: String
-  }
+  about: {
+    type: String,
+  },
+  phoneNumber: {
+    type: String,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 module.exports = userSchema;
