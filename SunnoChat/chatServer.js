@@ -7,14 +7,20 @@ function chatServer(socket, io) {
     console.log("Clients connected", clients);
     clients.map((user) => {
       if (user != socket.id) {
-        io.to(user).emit("chat-connected", JSON.stringify({
-          connectedUser: socket.id,
-          message: "connected",
-        }));
-        socket.emit("chat-connected", JSON.stringify({
+        io.to(user).emit(
+          "chat-connected",
+          JSON.stringify({
+            connectedUser: socket.id,
+            message: "connected",
+          })
+        );
+        socket.emit(
+          "chat-connected",
+          JSON.stringify({
             connectedUser: user,
             message: "connected",
-        }));
+          })
+        );
       }
     });
   });
@@ -22,13 +28,23 @@ function chatServer(socket, io) {
   socket.on("send-message", (data) => {
     console.log("=====================send-message====================");
     data = JSON.parse(data);
-    console.log({message : data.message, reciever : data.reciever});
-    io.to(data.reciever).emit("recieve-message",JSON.stringify({
-      message: data.message,
-      sender: socket.id,
-    }));
-  })
+    console.log({ message: data.message, reciever: data.reciever });
+    io.to(data.reciever).emit(
+      "recieve-message",
+      JSON.stringify({
+        message: data.message,
+        sender: socket.id,
+      })
+    );
+  });
 
+  socket.on("leave-chat", () => {
+    console.log("============Socket leave=============");
+    const { rooms } = socket;
+    Array.from(rooms).forEach(async (roomId) => {
+      socket.leave("chat-room");
+    });
+  });
 
   socket.on("disconnect", () => {
     console.log("============Socket disconnected=============", socket.id);
