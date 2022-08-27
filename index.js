@@ -1,5 +1,4 @@
 const { db_connection, Room } = require("./db-connect");
-const router = require("./routes");
 const express = require("express");
 const app = express();
 const cors = require("cors");
