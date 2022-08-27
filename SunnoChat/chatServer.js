@@ -31,6 +31,7 @@ function chatServer(socket, io) {
 
   socket.on('leave-chat',()=>{
     console.log("============Socket left the chat=============",socket.id);
+    console.log("Clients",clients);
       socket.leave("chat-room");
   })
 
