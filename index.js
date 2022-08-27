@@ -7,6 +7,7 @@ const { ObjectId } = require("mongodb");
 require("dotenv").config();
 const server = require("http").createServer(app);
 const chatServer = require("./SunnoChat/chatServer");
+const routes = require("./routes");
 
 const io = require("socket.io")(server, {
   cors: {
@@ -26,12 +27,11 @@ app.use(
 
 const socketUserMapping = {};
 
-
 io.on("connection", (socket) => {
   console.log("============Socket connected=============", socket.id);
 
   chatServer(socket, io);
-    
+
   socket.on("join", async ({ roomId, user }) => {
     console.log("============Socket join=============", {
       roomId,
@@ -133,7 +133,8 @@ io.on("connection", (socket) => {
 
 db_connection();
 
-app.use(router);
+
+routes(app)
 
 app.get("/", (req, res) => {
   res.send("Welcome to sab sunno");

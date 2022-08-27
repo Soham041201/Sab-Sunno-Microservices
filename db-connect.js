@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const userSchema = require("./models/User");
 const roomSchema = require("./models/Room");
 const { ServerApiVersion } = require("mongodb");
+const userConnectionSchema = require("./models/UserConnection");
 
 const db_connection = () => {
   mongoose.connect(process.env.MONGODB_URI, {
@@ -18,5 +19,6 @@ const db_connection = () => {
 
 const Users = mongoose.model("Users", userSchema);
 const Room = mongoose.model("Rooms", roomSchema);
+const UserConnection = mongoose.model("UserConnection", userConnectionSchema);
 
-module.exports = { db_connection, Users, Room };
+module.exports = { db_connection, Users, Room, UserConnection };
