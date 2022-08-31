@@ -136,7 +136,7 @@ db_connection();
 routes(app)
 
 app.get("/", (req, res) => {
-  res.send("Welcome to sab sunno");
+  res.send("Welcome to sab sunno.Sab Sunno is the one of its kind application");
 });
 
 server.listen(process.env.PORT, () => {
