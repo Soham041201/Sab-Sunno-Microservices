@@ -87,7 +87,7 @@ router.post("/field/:userId", async (req, res) => {
     const user = await Users.findOne({
      email: email});
 
-     if(user.password == password){
+     if(user?.password == password){
       return res.status(200).send({
         message:"Logged in successfully",
         user:user
