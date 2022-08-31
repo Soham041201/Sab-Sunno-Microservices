@@ -121,7 +121,7 @@ router.post("/field/:userId", async (req, res) => {
   
   router.get("/user/:userId", async (req, res) => {
     const { userId } = req.params;
-    const o_userId = new ObjectId(userId.trim());
+    const o_userId = new ObjectID(userId.trim());
     const user = await Users.findById(o_userId);
     if (user) {
       console.log(user);
