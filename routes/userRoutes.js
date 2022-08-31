@@ -52,7 +52,7 @@ router.post("/field/:userId", async (req, res) => {
     } = req.body;
     
     const user = await Users.findOne({
-      $or: [{ email: email }, { phoneNumber: phoneNumber }],
+      $or: [{ email: email }],
     });
     // console.log("=======================User Data======================");
     console.log(user);
