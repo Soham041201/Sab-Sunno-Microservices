@@ -35,7 +35,26 @@ router.post("/user/connection", async (req, res) => {
   });
   
 
-
+  router.post("/connection/status", async (req, res) => {
+    const { userId, otherUserId } = req.body;
+    const o_userId = new ObjectID(userId);
+    const o_otherUserId = new ObjectID(otherUserId);
+  
+    const connection = await UserConnection.findOne({
+      $or: [
+        { userId: o_userId, otherUserId: o_otherUserId },
+        { userId: o_otherUserId, otherUserId: o_userId },
+      ],
+    });
+  
+    if (connection) {
+      return res.status(200).send({
+        message: "Connection Exists",
+        user: connection,
+      });
+    }
+    return res.status(400).send({ message: "Connection not present" });
+  });
 
 
 module.exports = (app)=>{
