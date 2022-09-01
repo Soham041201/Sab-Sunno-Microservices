@@ -50,7 +50,7 @@ router.post("/user/connection", async (req, res) => {
     if (connection) {
       return res.status(200).send({
         message: "Connection Exists",
-        user: connection,
+        connection: connection,
       });
     }
     return res.status(400).send({ message: "Connection not present" });
