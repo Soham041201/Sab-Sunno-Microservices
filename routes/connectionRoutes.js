@@ -57,11 +57,12 @@ router.post("/user/connection", async (req, res) => {
   });
 
 
-  router.post('/notifications',async (req,res)=>{
+  router.post("/notifications",async (req,res)=>{
     const { otherUserId } = req.body;
+
     const o_otherUserId = new ObjectID(otherUserId);
 
-    const notifications = UserConnection.find({otherUserId: o_otherUserId,status:"pending" })
+    const notifications = await UserConnection.find({otherUserId: o_otherUserId,status:"pending" })
     if(notifications){
       res.status(200).send({
         message:"Notifications recieved",
@@ -72,6 +73,8 @@ router.post("/user/connection", async (req, res) => {
       message:"Something went wrong"
     })
   })
+
+
 module.exports = (app)=>{
     app.use(router);
   }
