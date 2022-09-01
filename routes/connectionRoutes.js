@@ -69,7 +69,7 @@ router.post("/user/connection", async (req, res) => {
         notifications: notifications
       })
     }
-    res.send.status(400).send({
+    res.status(400).send({
       message:"Something went wrong"
     })
   })
