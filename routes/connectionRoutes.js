@@ -3,8 +3,8 @@ const {UserConnection} = require('../models/UserConnection')
 
 
 
-router.post("/user/connection/:userId/:otherUserId", async (req, res) => {
-    const { userId, otherUserId } = req.params;
+router.post("/user/connection", async (req, res) => {
+    const { userId, otherUserId } = req.body;
     const o_userId = new ObjectId(userId);
     const o_otherUserId = new ObjectId(otherUserId);
   
