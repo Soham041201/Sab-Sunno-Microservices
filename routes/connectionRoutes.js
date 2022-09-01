@@ -74,6 +74,22 @@ router.post("/user/connection", async (req, res) => {
     })
   })
 
+  router.put("/connection/status",async (req,res)=>{
+    const {status, otherUserId } = req.body;
+    const o_otherUserId = new ObjectID(otherUserId);
+
+    const notifications = await UserConnection.findOneAndUpdate({otherUserId: o_otherUserId,status:status }).populate('userId')
+    
+    if(notifications){
+      return res.status(200).send({
+        message:"Status updated",
+        data: notifications
+      })
+    }
+    return res.status(400).send({
+      message:"Something went wrong",
+    })
+  })
 
 module.exports = (app)=>{
     app.use(router);
