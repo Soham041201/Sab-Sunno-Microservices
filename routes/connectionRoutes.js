@@ -1,12 +1,12 @@
 const router = require("express").Router();
 const {UserConnection} = require('../models/UserConnection')
-
+const { ObjectID } = require("bson");
 
 
 router.post("/user/connection", async (req, res) => {
     const { userId, otherUserId } = req.body;
-    const o_userId = new ObjectId(userId);
-    const o_otherUserId = new ObjectId(otherUserId);
+    const o_userId = new ObjectID(userId);
+    const o_otherUserId = new ObjectID(otherUserId);
   
     const connection = await UserConnection.findOne({
       $or: [
