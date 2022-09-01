@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const {UserConnection} = require('../models/UserConnection')
+const { UserConnection } = require("../db-connect");
 const { ObjectID } = require("bson");
 
 
