@@ -64,12 +64,12 @@ router.post("/user/connection", async (req, res) => {
 
     const notifications = await UserConnection.find({otherUserId: o_otherUserId,status:"pending" })
     if(notifications){
-      res.status(200).send({
+      return res.status(200).send({
         message:"Notifications recieved",
         notifications: notifications
       })
     }
-    res.status(400).send({
+    return res.status(400).send({
       message:"Something went wrong"
     })
   })
