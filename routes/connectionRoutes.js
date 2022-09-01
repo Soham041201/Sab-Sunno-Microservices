@@ -57,6 +57,21 @@ router.post("/user/connection", async (req, res) => {
   });
 
 
+  router.get('/notifications/:userId',async (req,res)=>{
+    const {userId} = req.params;
+    const o_userId = new ObjectID(userId);
+
+    const notifications = UserConnection.find({otherUserId: o_userId,status:"pending" })
+    if(notifications){
+      res.status(200).send({
+        message:"Notifications recieved",
+        notifications: notifications
+      })
+    }
+    res.send.status(400).send({
+      message:"Something went wrong"
+    })
+  })
 module.exports = (app)=>{
     app.use(router);
   }
