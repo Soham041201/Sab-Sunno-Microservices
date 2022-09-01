@@ -62,7 +62,7 @@ router.post("/user/connection", async (req, res) => {
 
     const o_otherUserId = new ObjectID(otherUserId);
 
-    const notifications = await UserConnection.find({otherUserId: o_otherUserId,status:"pending" })
+    const notifications = await UserConnection.find({otherUserId: o_otherUserId,status:"pending" }).populate('userId')
     if(notifications){
       return res.status(200).send({
         message:"Notifications recieved",
