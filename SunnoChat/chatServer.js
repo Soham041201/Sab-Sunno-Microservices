@@ -29,6 +29,11 @@ function chatServer(socket, io) {
     }));
   })
 
+  socket.on('is_online',(data)=>{
+    console.log("===============is_online SOCKET EVENT==========");
+    socket.broadcast.emit('user_online',data);
+  })
+
   socket.on('leave-chat',()=>{
     console.log("============Socket left the chat=============",socket.id);
     console.log("Clients",clients);
