@@ -29,10 +29,10 @@ function chatServer(socket, io) {
     }));
   })
 
-  socket.on('is_online',(data)=>{
+  socket.on('is_online',()=>{
     console.log("===============is_online SOCKET EVENT==========");
-    console.log("=======online socket========",data);
-    socket.broadcast.emit('user_online',data);
+    console.log("=======online socket========",socket.id);
+    socket.broadcast.emit('user_online',socket.id);
   })
 
   socket.on('leave-chat',()=>{
