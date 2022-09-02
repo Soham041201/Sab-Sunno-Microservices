@@ -77,10 +77,11 @@ router.post("/user/connection", async (req, res) => {
   })
 
   router.put("/connection/status",async (req,res)=>{
-    const {status, userId } = req.body;
+    const {status, userId, otherUserId } = req.body;
     const o_userId = new ObjectID(userId);
+    const o_otherUserId = new ObjectID(otherUserId);
 
-    const notifications = await UserConnection.findOneAndUpdate({userId:o_userId},{$set:{status: status}})
+    const notifications = await UserConnection.findOneAndUpdate({userId:o_userId, otherUserId:o_otherUserId},{$set:{status: status}})
     
     if(notifications){
       console.log(notifications);
