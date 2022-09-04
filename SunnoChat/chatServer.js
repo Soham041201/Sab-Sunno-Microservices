@@ -30,10 +30,11 @@ function chatServer(socket, io) {
     }));
   })
 
-  socket.on('is_online',(data)=>{
+  socket.on('is_online',(id)=>{
     console.log("===============is_online SOCKET EVENT==========");
-    console.log("=======online socket========",data);
-    // socket.broadcast.emit('user_online',Array.from(io.sockets.adapter.rooms.get("chat-room")));
+    // console.log("=======online socket========",id);
+    console.log("=======is connected user online",Array.from(io.sockets.adapter.rooms.get("chat-room")).includes(id));
+    socket.broadcast.emit('user_online',Array.from(io.sockets.adapter.rooms.get("chat-room")).includes(id));
   })
 
   socket.on('last_seen',()=>{})
