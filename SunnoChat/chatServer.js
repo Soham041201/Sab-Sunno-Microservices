@@ -1,6 +1,7 @@
 function chatServer(socket, io) {
   const clients = Array.from(io.sockets.adapter.rooms.get("chat-room") || []);
 
+
   socket.on("chat-join", (data) => {
     console.log(data + socket.id);
     socket.join("chat-room");
@@ -29,11 +30,15 @@ function chatServer(socket, io) {
     }));
   })
 
-  socket.on('is_online',()=>{
+  socket.on('is_online',(data)=>{
     console.log("===============is_online SOCKET EVENT==========");
-    console.log("=======online socket========",socket.id);
-    socket.broadcast.emit('user_online',socket.id);
+    console.log("=======online socket========",data);
+    socket.broadcast.emit('user_online',Array.from(io.sockets.adapter.rooms.get("chat-room")));
   })
+
+  socket.on('last_seen',()=>{})
+
+
 
   socket.on('leave-chat',()=>{
     console.log("============Socket left the chat=============",socket.id);
