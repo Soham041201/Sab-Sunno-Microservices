@@ -39,6 +39,7 @@ function chatServer(socket, io) {
     // const sockets = await io.allSockets();
     // console.log(sockets);
     //Add last seen code
+    console.log(isOnline);
     socket.emit('last_seen',isOnline)
     io.to(otherSocketId).emit('last_seen',isOnline)
   })
