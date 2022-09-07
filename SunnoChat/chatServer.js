@@ -34,10 +34,12 @@ function chatServer(socket, io) {
     console.log("===============is_online SOCKET EVENT==========");
     console.log("=======online socket========",socket.id);
     const isOnline = Array.from(io.sockets.adapter.rooms.get("chat-room")).filter(id=>  id !== socket.id).length > 0
-    console.log(isOnline);
+
+    //Add last seen code
+    socket.emit('last_seen',isOnline)
   })
 
-  socket.on('last_seen',()=>{})
+
 
 
 
