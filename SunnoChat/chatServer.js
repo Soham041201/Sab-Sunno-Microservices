@@ -33,6 +33,7 @@ function chatServer(socket, io) {
   socket.on('is_online',async()=>{
     console.log("===============is_online SOCKET EVENT==========");
     console.log("=======online socket========",socket.id);
+    console.log(io.sockets.adapter.rooms.get("chat-room"));
     const isOnline = Array.from(io.sockets.adapter.rooms.get("chat-room") || []).filter(id=>  id !== socket.id).length > 0
     const otherSocketId =isOnline && Array.from(io.sockets.adapter.rooms.get("chat-room")).filter(id=>  id !== socket.id)[0]
 
