@@ -33,8 +33,9 @@ function chatServer(socket, io) {
   socket.on('is_online',async()=>{
     console.log("===============is_online SOCKET EVENT==========");
     console.log("=======online socket========",socket.id);
-    const otherSocketId = Array.from(io.sockets.adapter.rooms.get("chat-room")).filter(id=>  id !== socket.id)[0]
     const isOnline = Array.from(io.sockets.adapter.rooms.get("chat-room")).filter(id=>  id !== socket.id).length > 0
+    const otherSocketId =isOnline && Array.from(io.sockets.adapter.rooms.get("chat-room")).filter(id=>  id !== socket.id)[0]
+
     // const sockets = await io.allSockets();
     // console.log(sockets);
     //Add last seen code
