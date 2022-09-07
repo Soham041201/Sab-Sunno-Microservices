@@ -33,7 +33,8 @@ function chatServer(socket, io) {
   socket.on('is_online',()=>{
     console.log("===============is_online SOCKET EVENT==========");
     console.log("=======online socket========",socket.id);
-    console.log(Array.from(io.sockets.adapter.rooms.get("chat-room")));
+    const isOnline = Array.from(io.sockets.adapter.rooms.get("chat-room")).pop(socket.id).length > 0 
+    console.log(isOnline);
   })
 
   socket.on('last_seen',()=>{})
