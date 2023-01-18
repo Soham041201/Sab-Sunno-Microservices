@@ -164,7 +164,7 @@ router.post("/field/:userId", async (req, res) => {
     const { userId } = req.params;
     const user = req.body;
     console.log("user", user);
-    const o_userId = new ObjectId(userId);
+    const o_userId = new ObjectID(userId);
     console.log(o_userId);
     const userD = await Users.findOneAndUpdate({ _id: o_userId }, user);
     if (userD) {
