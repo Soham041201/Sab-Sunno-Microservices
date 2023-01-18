@@ -138,7 +138,7 @@ router.post("/field/:userId", async (req, res) => {
   
     const { userId } = req.params;
     const { username, photoURL } = req.body;
-    const o_userId = new ObjectId(userId);
+    const o_userId = new ObjectID(userId);
     const user = await Users.findOneAndUpdate(
       { _id: o_userId },
       {
