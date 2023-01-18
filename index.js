@@ -10,7 +10,7 @@ const routes = require("./routes");
 
 const io = require("socket.io")(server, {
   cors: {
-    origin: "https://main--splendid-dasik-09a897.netlify.app",
+    origin: "https://splendid-dasik-09a897.netlify.app/",
     methods: ["GET", "POST"],
   },
 });
@@ -19,7 +19,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "https://main--splendid-dasik-09a897.netlify.app",
+    origin: "https://splendid-dasik-09a897.netlify.app/",
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
