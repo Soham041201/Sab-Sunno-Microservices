@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const userConnectionSchema = new mongoose.Schema({
   id: {
@@ -7,17 +7,17 @@ const userConnectionSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: "Users",
+    ref: 'Users',
   },
   otherUserId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: "Users",
+    ref: 'Users',
   },
   status: {
     type: String,
-    enum: ["pending", "accepted", "rejected", "blocked"],
-    default: "pending",
+    enum: ['pending', 'accepted', 'rejected', 'blocked'],
+    default: 'pending',
     required: true,
   },
   createdAt: {

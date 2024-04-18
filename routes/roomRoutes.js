@@ -1,10 +1,9 @@
-const { ObjectId } = require("mongodb");
-const { Users, Room, UserConnection } = require("../db-connect");
+const { ObjectId } = require('mongodb');
+const { Users, Room, UserConnection } = require('../db-connect');
 
-const router = require("express").Router();
+const router = require('express').Router();
 
-
-router.post("/room", async (req, res) => {
+router.post('/room', async (req, res) => {
   const { roomName, roomDescription, createdBy, users } = req.body;
   const room = await Room.create({
     roomName: roomName,
@@ -15,23 +14,22 @@ router.post("/room", async (req, res) => {
 
   if (room) {
     return res.send({
-      message: "Room created successfully",
+      message: 'Room created successfully',
       room: room,
       status: true,
     });
   }
   return res.send.status(400).send({
-    message: "Something went wrong",
+    message: 'Something went wrong',
   });
 });
 
-
-router.get("/rooms", async (req, res) => {
+router.get('/rooms', async (req, res) => {
   const rooms = await Room.find();
-  res.send({ message: "List of rooms", rooms: rooms });
+  res.send({ message: 'List of rooms', rooms: rooms });
 });
 
-router.get("/room/:roomId", async (req, res) => {
+router.get('/room/:roomId', async (req, res) => {
   const { roomId } = req.params;
   const o_roomId = new ObjectId(roomId);
   const room = await Room.findOne({ _id: o_roomId });
@@ -45,16 +43,16 @@ router.get("/room/:roomId", async (req, res) => {
       room: room,
     });
   }
-  res.status(400).send({ message: "Room not found" });
+  res.status(400).send({ message: 'Room not found' });
 });
 
-router.get("/room/:roomId/:userId", async (req, res) => {
+router.get('/room/:roomId/:userId', async (req, res) => {
   const { roomId, userId } = req.params;
   const newUser = await Users.findOne({ _id: ObjectId(userId) });
   const room = await Room.findOne({ _id: ObjectId(roomId) });
   if (room.users.includes(newUser._id)) {
     return res.send({
-      message: "User already in room",
+      message: 'User already in room',
       room: room,
     });
   }
@@ -64,29 +62,28 @@ router.get("/room/:roomId/:userId", async (req, res) => {
   );
   if (room) {
     return res.send({
-      message: "Room updated",
+      message: 'Room updated',
       room: UpdateRoom,
     });
   }
-  return res.status(400).send({ message: "Something went wrong" });
+  return res.status(400).send({ message: 'Something went wrong' });
 });
 
-router.delete("/room/:roomId", async (req, res) => {
+router.delete('/room/:roomId', async (req, res) => {
   const { roomId } = req.params;
   const o_roomId = new ObjectId(roomId);
   const room = await Room.findOneAndDelete({ _id: o_roomId });
 
   if (room) {
     return res.send({
-      message: "Room deleted",
+      message: 'Room deleted',
       room: room,
     });
   }
-  return res.status(400).send({ message: "Something went wrong" });
+  return res.status(400).send({ message: 'Something went wrong' });
 });
 
-
-router.post("/user/connection/:userId/:otherUserId", async (req, res) => {
+router.post('/user/connection/:userId/:otherUserId', async (req, res) => {
   const { userId, otherUserId } = req.params;
   const o_userId = new ObjectId(userId);
   const o_otherUserId = new ObjectId(otherUserId);
@@ -100,7 +97,7 @@ router.post("/user/connection/:userId/:otherUserId", async (req, res) => {
 
   if (connection) {
     return res.status(400).send({
-      message: "User already connected",
+      message: 'User already connected',
       user: connection,
     });
   }
@@ -110,14 +107,13 @@ router.post("/user/connection/:userId/:otherUserId", async (req, res) => {
   });
   if (newConnection) {
     return res.status(200).send({
-      message: "Request sent",
+      message: 'Request sent',
       user: newConnection,
     });
   }
-  return res.status(400).send({ message: "Something went wrong" });
+  return res.status(400).send({ message: 'Something went wrong' });
 });
 
-
-  module.exports = (app)=>{
-    app.use(router);
-  }
+module.exports = (app) => {
+  app.use(router);
+};

@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const userSchema = require("./User");
+const mongoose = require('mongoose');
+const userSchema = require('./User');
 
 const roomSchema = new mongoose.Schema({
   id: {
