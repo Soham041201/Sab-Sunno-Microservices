@@ -5,7 +5,7 @@ const { ServerApiVersion } = require('mongodb');
 const userConnectionSchema = require('./models/UserConnection');
 
 const db_connection = () => {
-  mongoose.connect(process.env.MONGODB_URI, {
+  mongoose.connect(process.env.MONDODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     serverApi: ServerApiVersion.v1,

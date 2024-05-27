@@ -5,12 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "pm2 start index.js",
+    "start": "nodemon start index.js",
     "log": "pm2 log 0"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@deepgram/sdk": "^3.3.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.1",
     "express": "^4.18.1",

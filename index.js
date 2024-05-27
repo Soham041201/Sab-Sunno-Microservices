@@ -137,6 +137,6 @@ app.get('/', (req, res) => {
   res.send('Welcome to sab sunno.Sab Sunno is the one of its kind application');
 });
 
-server.listen(process.env.PORT, () => {
-  console.log(`Server started at port ${process.env.PORT}`);
+server.listen(8000, () => {
+  console.log(`Server started at port ${8000}`);
 });

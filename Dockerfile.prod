@@ -1,7 +1,0 @@
-FROM node:17
-WORKDIR /back-end
-COPY package*.json ./
-RUN npm install --only=prod
-COPY . ./
-EXPOSE 8000
-CMD [ "npm", "start" ]
