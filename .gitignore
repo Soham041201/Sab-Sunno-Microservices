@@ -1,4 +1,4 @@
-/node_modules
-/.env
-/package-lock.json
+/api-service/node_modules
+/api-service/.env
+/api-service/package-lock.json
 /db_data

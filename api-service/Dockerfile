@@ -2,16 +2,15 @@ FROM node:22-alpine3.19
 
 # Install build dependencies (needed for ffmpeg compilation)
 
-RUN apk add make gcc g++ python3
-
-WORKDIR /back-end
+WORKDIR /api-service
 
 COPY package*.json ./
 RUN npm install 
 
-# Download and install ffmp
 
-COPY . ./
+
+COPY . .
 
 EXPOSE 8000
+
 CMD [ "npm", "start" ]
