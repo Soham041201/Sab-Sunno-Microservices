@@ -86,7 +86,7 @@ func main() {
 		for {
 			// Read RTP packets being sent to Pion
 			rtp, _, readErr := track.ReadRTP()
-			fmt.Printf("Logging RPT packets: %q", &rtp)
+			fmt.Printf("Logging RPT packets: %q",rtp)
 			if readErr != nil {
 				panic(readErr)
 			}
