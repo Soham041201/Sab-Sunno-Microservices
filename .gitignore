@@ -2,3 +2,4 @@
 /api-service/.env
 /api-service/package-lock.json
 /db_data
+/audio-service/.env
