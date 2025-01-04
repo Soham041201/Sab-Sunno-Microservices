@@ -1,13 +1,13 @@
 services:
-  backend:
-    build: ./api-service
-    ports:
-      - 8000:8000
-    depends_on:
-      - mongodb
-    environment:
-      - MONDODB_URI=mongodb://sabsunno:sabsunno@mongodb:27017/
-    working_dir: /api-service
+  # backend:
+  #   build: ./api-service
+  #   ports:
+  #     - 8000:8000
+  #   depends_on:
+  #     - mongodb
+  #   environment:
+  #     - MONDODB_URI=mongodb://sabsunno:sabsunno@mongodb:27017/
+  #   working_dir: /api-service
 
   mongodb:
     image: mongo

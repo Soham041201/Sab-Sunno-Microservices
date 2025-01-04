@@ -1,186 +1,158 @@
-// SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
-// SPDX-License-Identifier: MIT
-
-//go:build !js
-// +build !js
-
-// reflect demonstrates how with one PeerConnection you can send video to Pion and have the packets sent back
 package main
 
 import (
-	"bufio"
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
+	"log"
+	"net/url"
 	"os"
-	"strings"
+	"os/signal"
 
-	"github.com/pion/webrtc/v4"
+	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 )
 
-// nolint:gocognit
+type GeminiClient struct {
+	conn *websocket.Conn
+}
+
+func (gc *GeminiClient) Close() error {
+	return gc.conn.Close()
+}
+
+func NewGeminiClient(apiKey string) (*GeminiClient, error) {
+	u := url.URL{Scheme: "wss", Host: "generativelanguage.googleapis.com", Path: "/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent", RawQuery: "key=" + apiKey}
+	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("dial: %w", err)
+	}
+	return &GeminiClient{conn: c}, nil
+}
+
+type GeminiResponse struct {
+	ServerContent struct {
+		ModelTurn struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		} `json:"modelTurn"`
+	} `json:"serverContent"`
+}
+
 func main() {
-	// Everything below is the Pion WebRTC API! Thanks for using it ❤️.
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file") // Handle the error properly
+	}
+	apiKey := os.Getenv("GOOGLE_API_KEY")
+	// GOOGLE_API_KEY := "AIzaSyBCxK-qNk7SxBQ3rXSzKNSd0jTzxBA_-y8"
+	// apiKey := GOOGLE_API_KEY
+	if apiKey == "" {
+		log.Fatal("GOOGLE_API_KEY environment variable not set")
+	}
 
-	// Create a MediaEngine object to configure the supported codec
+	client, err := NewGeminiClient(apiKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
 
-	// Prepare the configuration
-	config := webrtc.Configuration{
-		ICEServers: []webrtc.ICEServer{
-			{
-				URLs: []string{"stun:stun.l.google.com:19302"},
+	err = client.SendSetup()
+	if err != nil {
+		log.Fatal("setup:", err)
+	}
+
+	err = client.SendTextMessage("Hello Gemini from Go!")
+	if err != nil {
+		log.Fatal("text message:", err)
+	}
+
+	messageChan, errorChan := client.ReceiveMessages()
+
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+
+	for {
+		select {
+		case message := <-messageChan:
+			// fmt.Printf("Received: %s\n", message)
+			var response GeminiResponse
+			err := json.Unmarshal(message, &response)
+			if err != nil {
+				log.Fatalf("Error unmarshaling JSON: %v", err)
+			}
+
+			if len(response.ServerContent.ModelTurn.Parts) > 0 {
+				fmt.Println(response.ServerContent.ModelTurn.Parts[0].Text)
+			} else {
+				fmt.Println("No text parts found in the response.")
+			}
+
+		case err := <-errorChan:
+			log.Println("receive error:", err)
+			return
+		case <-interrupt:
+			fmt.Println("interrupt")
+			return
+		}
+	}
+
+}
+
+func (gc *GeminiClient) SendSetup() error {
+	setupMsg := map[string]interface{}{
+		"setup": map[string]interface{}{
+			"model": "models/gemini-2.0-flash-exp",
+			"generation_config": map[string]interface{}{
+				"response_modalities": []string{"TEXT"},
 			},
 		},
 	}
-	// Create a new RTCPeerConnection
-	peerConnection, err := webrtc.NewPeerConnection(config)
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		if cErr := peerConnection.Close(); cErr != nil {
-			fmt.Printf("cannot close peerConnection: %v\n", cErr)
-		}
-	}()
+	return gc.sendMessage(setupMsg)
+}
 
-	// Create Track that we send video back to browser on
-	outputTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "pion")
-	if err != nil {
-		panic(err)
-	}
-
-	// Add this newly created track to the PeerConnection
-	rtpSender, err := peerConnection.AddTrack(outputTrack)
-	if err != nil {
-		panic(err)
+func (gc *GeminiClient) SendTextMessage(text string) error {
+	msg := map[string]interface{}{
+		"client_content": map[string]interface{}{
+			"turn_complete": true,
+			"turns": []map[string]interface{}{
+				{
+					"role": "user",
+					"parts": []map[string]interface{}{
+						{"text": text},
+					},
+				},
+			},
+		},
 	}
 
-	// Read incoming RTCP packets
-	// Before these packets are returned they are processed by interceptors. For things
-	// like NACK this needs to be called.
+	return gc.sendMessage(msg)
+}
+
+func (gc *GeminiClient) sendMessage(msg map[string]interface{}) error {
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
+	return gc.conn.WriteMessage(websocket.TextMessage, msgJSON)
+}
+
+func (gc *GeminiClient) ReceiveMessages() (<-chan []byte, <-chan error) {
+	messageChan := make(chan []byte)
+	errorChan := make(chan error)
+
 	go func() {
-		rtcpBuf := make([]byte, 1500)
+		defer close(messageChan)
+		defer close(errorChan)
 		for {
-			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+			_, message, err := gc.conn.ReadMessage()
+			if err != nil {
+				errorChan <- fmt.Errorf("read: %w", err)
 				return
 			}
+			messageChan <- message
 		}
 	}()
 
-	// Wait for the offer to be pasted
-	offer := webrtc.SessionDescription{}
-	decode("", &offer)
-
-	// Set the remote SessionDescription
-	err = peerConnection.SetRemoteDescription(offer)
-	if err != nil {
-		panic(err)
-	}
-
-	// Set a handler for when a new remote track starts, this handler copies inbound RTP packets,
-	// replaces the SSRC and sends them back
-	peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) { //nolint: revive
-		fmt.Printf("Track has started, of type %d: %s \n", track.PayloadType(), track.Codec().MimeType)
-		for {
-			// Read RTP packets being sent to Pion
-			rtp, _, readErr := track.ReadRTP()
-			fmt.Printf("Logging RPT packets: %q",rtp)
-			if readErr != nil {
-				panic(readErr)
-			}
-
-			if writeErr := outputTrack.WriteRTP(rtp); writeErr != nil {
-				panic(writeErr)
-			}
-		}
-	})
-
-	// Set the handler for Peer connection state
-	// This will notify you when the peer has connected/disconnected
-	peerConnection.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
-		fmt.Printf("Peer Connection State has changed: %s\n", s.String())
-
-		if s == webrtc.PeerConnectionStateFailed {
-			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
-			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
-			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-			fmt.Println("Peer Connection has gone to failed exiting")
-			os.Exit(0)
-		}
-
-		if s == webrtc.PeerConnectionStateClosed {
-			// PeerConnection was explicitly closed. This usually happens from a DTLS CloseNotify
-			fmt.Println("Peer Connection has gone to closed exiting")
-			os.Exit(0)
-		}
-	})
-
-	// Create an answer
-	answer, err := peerConnection.CreateAnswer(nil)
-	if err != nil {
-		panic(err)
-	}
-
-	// Create channel that is blocked until ICE Gathering is complete
-	gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
-
-	// Sets the LocalDescription, and starts our UDP listeners
-	if err = peerConnection.SetLocalDescription(answer); err != nil {
-		panic(err)
-	}
-
-	// Block until ICE Gathering is complete, disabling trickle ICE
-	// we do this because we only can exchange one signaling message
-	// in a production application you should exchange ICE Candidates via OnICECandidate
-	<-gatherComplete
-
-	// Output the answer in base64 so we can paste it in browser
-	fmt.Println(encode(peerConnection.LocalDescription()))
-
-	// Block forever
-	select {}
-}
-
-// Read from stdin until we get a newline
-func readUntilNewline() (in string) {
-	var err error
-
-	r := bufio.NewReader(os.Stdin)
-	for {
-		in, err = r.ReadString('\n')
-		if err != nil && !errors.Is(err, io.EOF) {
-			panic(err)
-		}
-
-		if in = strings.TrimSpace(in); len(in) > 0 {
-			break
-		}
-	}
-
-	fmt.Println("")
-	return
-}
-
-// JSON encode + base64 a SessionDescription
-func encode(obj *webrtc.SessionDescription) string {
-	b, err := json.Marshal(obj)
-	if err != nil {
-		panic(err)
-	}
-
-	return base64.StdEncoding.EncodeToString(b)
-}
-
-// Decode a base64 and unmarshal JSON into a SessionDescription
-func decode(in string, obj *webrtc.SessionDescription) {
-	b, err := base64.StdEncoding.DecodeString(in)
-	if err != nil {
-		panic(err)
-	}
-
-	if err = json.Unmarshal(b, obj); err != nil {
-		panic(err)
-	}
+	return messageChan, errorChan
 }

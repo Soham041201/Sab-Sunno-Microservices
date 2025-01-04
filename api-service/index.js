@@ -7,6 +7,10 @@ require('dotenv').config();
 const server = require('http').createServer(app);
 const chatServer = require('./SunnoChat/chatServer');
 const routes = require('./routes');
+const {
+  fetchEphimerialToken,
+  sendLocalDescriptionToOpenAi,
+} = require('./openai');
 
 const io = require('socket.io')(server, {
   cors: {
@@ -31,11 +35,27 @@ io.on('connection', (socket) => {
 
   chatServer(socket, io);
 
+  socket.on(
+    'open-ai-offer',
+    async ({ peerId, sessionDescription: offer, token }) => {
+      console.log('open-ai-offer', { offer, token });
+      const answer = await sendLocalDescriptionToOpenAi({ offer, token });
+      console.log('open-ai-answer', { peerId, sessionDescription: answer });
+
+      socket.emit('open-ai-answer', { peerId, sessionDescription: answer });
+    }
+  );
+
   socket.on('join', async ({ roomId, user }) => {
     console.log('============Socket join=============', {
       roomId,
       user,
     });
+
+    const token = await fetchEphimerialToken();
+    console.log('Token', token);
+
+    socket.emit('openai-session-key', { token });
 
     socketUserMapping[socket.id] = user;
 
@@ -66,6 +86,7 @@ io.on('connection', (socket) => {
     });
 
     socket.join(roomId);
+
     console.log('Clients connected', clients);
   });
 
