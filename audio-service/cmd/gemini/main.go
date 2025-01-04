@@ -8,32 +8,17 @@ import (
 	"os/signal"
 
 	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/internal/gemini" // Correct import path
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 
-	apiKey := os.Getenv("GOOGLE_API_KEY")
-	if apiKey == "" {
-		log.Fatal("GOOGLE_API_KEY environment variable not set")
-	}
-
-	client, err := gemini.NewGeminiClient(apiKey)
+	client, err := gemini.SetupGeminiServiceToGenerateResponsee() // Correct function name
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer client.Close()
 
-	err = client.SendSetup()
-	if err != nil {
-		log.Fatal("setup:", err)
-	}
-
-	err = client.SendTextMessage("Hello Gemini from Go!")
+	err = client.SendTextMessage("How are you?") // Correct function name
 	if err != nil {
 		log.Fatal("text message:", err)
 	}
@@ -51,7 +36,6 @@ func main() {
 			if err != nil {
 				log.Fatalf("Error unmarshaling JSON: %v, Raw message: %s", err, message)
 			}
-
 			if len(response.ServerContent.ModelTurn.Parts) > 0 {
 				fmt.Println(response.ServerContent.ModelTurn.Parts[0].Text)
 			} else {
