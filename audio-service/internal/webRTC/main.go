@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/internal/gemini"
 	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/utils"
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
@@ -52,11 +53,12 @@ func SetupWebRTCForConnection(socketEvent utils.SocketEvent, c *websocket.Conn) 
 
 		d.OnOpen(func() {
 			fmt.Printf("Data channel '%s'-'%d' open.\n", d.Label(), d.ID())
-			d.SendText("Hello, Client!")
+
 		})
 
 		d.OnMessage(func(msg webrtc.DataChannelMessage) {
 			fmt.Printf("Message from DataChannel '%s': '%s'\n", d.Label(), string(msg.Data))
+			gemini.HandleGeminiResponse(string(msg.Data), d)
 		})
 	})
 

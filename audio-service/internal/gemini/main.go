@@ -1,10 +1,14 @@
 package gemini
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"os"
+	"os/signal"
 
 	"github.com/joho/godotenv"
+	"github.com/pion/webrtc/v3"
 )
 
 func SetupGeminiServiceToGenerateResponsee() (*GeminiClient, error) {
@@ -18,7 +22,7 @@ func SetupGeminiServiceToGenerateResponsee() (*GeminiClient, error) {
 		log.Fatal("GOOGLE_API_KEY environment variable not set")
 	}
 	client, err := NewGeminiClient(apiKey)
-	
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,4 +35,46 @@ func SetupGeminiServiceToGenerateResponsee() (*GeminiClient, error) {
 
 	return client, nil
 
+}
+
+func HandleGeminiResponse(text string, d *webrtc.DataChannel) {
+
+	client, err := SetupGeminiServiceToGenerateResponsee() // Correct function name
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	err = client.SendTextMessage(text) // Correct function name
+	if err != nil {
+		log.Fatal("text message:", err)
+	}
+
+	messageChan, errorChan := client.ReceiveMessages()
+
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+
+	for {
+		select {
+		case message := <-messageChan:
+			var response GeminiResponse
+			err := json.Unmarshal(message, &response)
+			if err != nil {
+				log.Fatalf("Error unmarshaling JSON: %v, Raw message: %s", err, message)
+			}
+			if len(response.ServerContent.ModelTurn.Parts) > 0 {
+				fmt.Println(response.ServerContent)
+				d.SendText(response.ServerContent.ModelTurn.Parts[0].Text)
+			} else {
+				fmt.Println("No text parts found in the response.")
+			}
+		case err := <-errorChan:
+			log.Println("receive error:", err)
+			return
+		case <-interrupt:
+			fmt.Println("interrupt")
+			return
+		}
+	}
 }
