@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 
+	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/utils"
+	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
 )
 
-func SetupWebRTCForConnection(clientOffer webrtc.SessionDescription, res http.ResponseWriter) {
+func SetupWebRTCForConnection(clientOffer webrtc.SessionDescription, c *websocket.Conn) {
 	// Prepare the configuration
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
@@ -33,11 +34,17 @@ func SetupWebRTCForConnection(clientOffer webrtc.SessionDescription, res http.Re
 		}
 
 		candidateJSON, err := json.Marshal(candidate.ToJSON())
+
 		if err != nil {
 			log.Println("error marshaling ice candidate", err)
 			return
 		}
 		fmt.Println("ICE Candidate:", string(candidateJSON)) // Send this to the client
+		socketEvent := utils.SocketEvent{
+			Event: "ice-candidate",
+			Data:  candidateJSON,
+		}
+		c.WriteJSON(socketEvent)
 	})
 
 	// Handle data channel messages
@@ -47,6 +54,7 @@ func SetupWebRTCForConnection(clientOffer webrtc.SessionDescription, res http.Re
 		// Register channel opening handling
 		d.OnOpen(func() {
 			fmt.Printf("Data channel '%s'-'%d' open.\n", d.Label(), d.ID())
+			d.SendText("Hello, Client!")
 		})
 
 		// Register text message handling
@@ -77,12 +85,8 @@ func SetupWebRTCForConnection(clientOffer webrtc.SessionDescription, res http.Re
 
 	fmt.Println("Answer SDP:\n", answer.SDP) // Send this answer to the client
 
-	res.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(res).Encode(answer.SDP)
-	if err != nil {
-		log.Fatal(err)
-	}
+	c.WriteJSON(answer)
 
 	// Block forever
-	select {}
+	// select {}
 }

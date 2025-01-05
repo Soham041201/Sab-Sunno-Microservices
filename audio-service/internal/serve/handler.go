@@ -5,9 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/internal/webRTC"
 	"github.com/pion/sdp/v3"
-	"github.com/pion/webrtc/v3"
 )
 
 // Define request and response structs within the session package.
@@ -43,11 +41,11 @@ func (h *Handler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("Received SDP: %s\n", bodyBytes)
 
-	sdpString := string(bodyBytes)
-	offer := webrtc.SessionDescription{
-		Type: webrtc.SDPTypeOffer,
-		SDP:  sdpString,
-	}
+	// sdpString := string(bodyBytes)
+	// offer := webrtc.SessionDescription{
+	// 	Type: webrtc.SDPTypeOffer,
+	// 	SDP:  sdpString,
+	// }
 
-	webRTC.SetupWebRTCForConnection(offer, w)
+	// webRTC.SetupWebRTCForConnection(offer, w)
 }

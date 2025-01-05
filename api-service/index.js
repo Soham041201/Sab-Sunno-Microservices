@@ -13,7 +13,9 @@ const {
   fetchEphimerialToken,
   sendLocalDescriptionToOpenAi,
 } = require('./openai');
+
 const wss = new WebSocket.Server({ port: 8001, path: '/ws' });
+const ioSockets = new Set();
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
@@ -23,6 +25,24 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (message) => {
     console.log(`Received: ${message}`);
+
+    ioSockets.forEach((socket) => {
+      const socketEvent = JSON.parse(message);
+      console.log('Socket event from go', socketEvent);
+
+      if (socketEvent.type === 'answer') {
+        socket.emit('open-ai-answer', {
+          peerId: 'open-ai',
+          sessionDescription: socketEvent.sdp,
+        }); // Emit a Socket.IO event
+      }
+      if (socketEvent.event === 'ice-candidate') {
+        socket.emit('open-ai-ice', {
+          peerId: 'open-ai',
+          icecandidate: socketEvent.data,
+        });
+      }
+    });
 
     wss.clients.forEach((client) => {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -62,7 +82,7 @@ const socketUserMapping = {};
 
 io.on('connection', (socket) => {
   console.log('============Socket connected=============', socket.id);
-
+  ioSockets.add(socket);
   chatServer(socket, io);
 
   socket.on(
@@ -70,10 +90,11 @@ io.on('connection', (socket) => {
     async ({ peerId, sessionDescription: offer, token }) => {
       console.log('open-ai-offer', { offer, token });
       // const answer = await sendLocalDescriptionToOpenAi({ offer, token });
-      console.log('open-ai-answer', { peerId, sessionDescription: answer });
+      // console.log('open-ai-answer', { peerId, sessionDescription: answer });
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
-          client.send('From SocketIO: ' + msg);
+          const socketEvent = { event: 'offer', data: offer };
+          client.send(JSON.stringify(socketEvent));
         }
       });
       // socket.emit('open-ai-answer', { peerId, sessionDescription: answer });
@@ -125,9 +146,21 @@ io.on('connection', (socket) => {
   });
 
   socket.on('relay-ice', ({ peerId, icecandidate }) => {
+    console.log('============Socket relay-ice From React=============', {
+      peerId,
+      icecandidate,
+    });
+
     io.to(peerId).emit('ice-candidate', {
       peerId: socket.id,
       icecandidate,
+    });
+
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        const socketEvent = { event: 'ice-candidates', data: icecandidate };
+        client.send(JSON.stringify(socketEvent));
+      }
     });
   });
 

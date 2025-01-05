@@ -9,8 +9,10 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/internal/webRTC"
 	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/utils"
 	"github.com/gorilla/websocket"
+	"github.com/pion/webrtc/v3"
 )
 
 func main() {
@@ -43,45 +45,34 @@ func main() {
 
 			if utils.IsSocketEvent(message) {
 				var data utils.SocketEvent
-				err = json.Unmarshal(message, &data)
+				err := json.Unmarshal(message, &data)
 				if err != nil {
-					panic(err)
+					// Handle error gracefully (e.g., log the error, send an error message to the client)
+					fmt.Println("Error unmarshaling SocketEvent:", err)
+					return // Or take other appropriate action
 				}
-				fmt.Println("Event:", data.Event)
-				fmt.Println("Data:", data.Data)
+				if string(data.Event) == "offer" {
+					var sessionOffer webrtc.SessionDescription
+					// Attempt to unmarshal the data as a SessionDescription
+					err := json.Unmarshal(data.Data, &sessionOffer)
+					if err == nil {
+						// Valid SDP object, proceed with WebRTC setup
+						webRTC.SetupWebRTCForConnection(sessionOffer, c)
+					} else {
+						// Handle invalid SDP or other data type gracefully
+						fmt.Println("Error unmarshaling data as SessionDescription:", err)
+						// You might consider checking for other known data types here if applicable
+					}
+				} else {
+					// Handle other SocketEvents
+					fmt.Println("Unhandled SocketEvent:", data.Event)
+				}
 			} else {
-				fmt.Println(string(message))
+				// Handle messages that are not valid SocketEvents
+				fmt.Println("Invalid SocketEvent received")
 			}
 		}
 	}()
-
-	// ticker := time.NewTicker(time.Second)
-	// defer ticker.Stop()
-
-	// for {
-	// 	select {
-	// 	case <-done:
-	// 		return
-	// 	case t := <-ticker.C:
-	// 		err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
-	// 		if err != nil {
-	// 			log.Println("write:", err)
-	// 			return
-	// 		}
-	// 	case <-interrupt:
-	// 		log.Println("interrupt")
-	// 		err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	// 		if err != nil {
-	// 			log.Println("write close:", err)
-	// 			return
-	// 		}
-	// 		select {
-	// 		case <-done:
-	// 		case <-time.After(time.Second):
-	// 		}
-	// 		return
-	// 	}
-	// }
 
 	select {
 	case <-done:
