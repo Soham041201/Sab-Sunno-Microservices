@@ -42,7 +42,7 @@ io.on('connection', (socket) => {
       const answer = await sendLocalDescriptionToOpenAi({ offer, token });
       console.log('open-ai-answer', { peerId, sessionDescription: answer });
 
-      socket.emit('open-ai-answer', { peerId, sessionDescription: answer });
+      // socket.emit('open-ai-answer', { peerId, sessionDescription: answer });
     }
   );
 
@@ -52,10 +52,10 @@ io.on('connection', (socket) => {
       user,
     });
 
-    const token = await fetchEphimerialToken();
-    console.log('Token', token);
+    // const token = await fetchEphimerialToken();
+    // console.log('Token', token);
 
-    socket.emit('openai-session-key', { token });
+    // socket.emit('openai-session-key', { token });
 
     socketUserMapping[socket.id] = user;
 

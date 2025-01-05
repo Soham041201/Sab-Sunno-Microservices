@@ -1,20 +1,18 @@
 package serve
 
 import (
-	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+
+	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/internal/webRTC"
+	"github.com/pion/sdp/v3"
+	"github.com/pion/webrtc/v3"
 )
 
 // Define request and response structs within the session package.
-type SessionRequest struct {
-	Username string `json:"username"`
-	Data     string `json:"data"`
-}
-
-type SessionResponse struct {
-	Message   string `json:"message"`
-	SessionID string `json:"session_id"`
+type HttpRequest struct {
+	sdp.SessionDescription
 }
 
 // Handler struct (if you need to store state)
@@ -29,39 +27,27 @@ func NewHandler() *Handler {
 
 // SessionHandler is the actual HTTP handler function.
 func (h *Handler) HandleRequest(w http.ResponseWriter, r *http.Request) {
+	fmt.Print("Received request\n")
+
 	if r.Method != http.MethodPost {
 		fmt.Printf("Method not allowed")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req SessionRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
+	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
+		fmt.Printf("Error reading request body: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	fmt.Printf("Received SDP: %s\n", bodyBytes)
 
-	if req.Username == "" {
-		http.Error(w, "Username is required", http.StatusBadRequest)
-		return
-	}
-	if req.Data == "" {
-		http.Error(w, "Data is required", http.StatusBadRequest)
-		return
+	sdpString := string(bodyBytes)
+	offer := webrtc.SessionDescription{
+		Type: webrtc.SDPTypeOffer,
+		SDP:  sdpString,
 	}
 
-	sessionID := fmt.Sprintf("session-%s-%s", req.Username, req.Data)
-
-	resp := SessionResponse{
-		Message:   fmt.Sprintf("Session created for user %s", req.Username),
-		SessionID: sessionID,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(resp)
-	if err != nil {
-		http.Error(w, "Error encoding JSON response", http.StatusInternalServerError)
-		return
-	}
+	webRTC.SetupWebRTCForConnection(offer, w)
 }
