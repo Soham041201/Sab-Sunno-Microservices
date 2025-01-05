@@ -9,11 +9,6 @@ const chatServer = require('./SunnoChat/chatServer');
 const routes = require('./routes');
 const WebSocket = require('ws'); // Import the ws library
 
-const {
-  fetchEphimerialToken,
-  sendLocalDescriptionToOpenAi,
-} = require('./openai');
-
 const wss = new WebSocket.Server({ port: 8001, path: '/ws' });
 const ioSockets = new Set();
 
@@ -25,15 +20,14 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (message) => {
     console.log(`Received: ${message}`);
-
     ioSockets.forEach((socket) => {
       const socketEvent = JSON.parse(message);
       console.log('Socket event from go', socketEvent);
 
-      if (socketEvent.type === 'answer') {
+      if (socketEvent.event === 'answer') {
         socket.emit('open-ai-answer', {
           peerId: 'open-ai',
-          sessionDescription: socketEvent.sdp,
+          sessionDescription: socketEvent.data.sdp,
         }); // Emit a Socket.IO event
       }
       if (socketEvent.event === 'ice-candidate') {
@@ -43,14 +37,6 @@ wss.on('connection', (ws) => {
         });
       }
     });
-
-    wss.clients.forEach((client) => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-
-    ws.send(`Server received: ${message}`);
   });
 
   ws.on('close', () => {
@@ -89,15 +75,12 @@ io.on('connection', (socket) => {
     'open-ai-offer',
     async ({ peerId, sessionDescription: offer, token }) => {
       console.log('open-ai-offer', { offer, token });
-      // const answer = await sendLocalDescriptionToOpenAi({ offer, token });
-      // console.log('open-ai-answer', { peerId, sessionDescription: answer });
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           const socketEvent = { event: 'offer', data: offer };
           client.send(JSON.stringify(socketEvent));
         }
       });
-      // socket.emit('open-ai-answer', { peerId, sessionDescription: answer });
     }
   );
 
@@ -107,10 +90,6 @@ io.on('connection', (socket) => {
       user,
     });
 
-    // const token = await fetchEphimerialToken();
-    // console.log('Token', token);
-
-    // socket.emit('openai-session-key', { token });
 
     socketUserMapping[socket.id] = user;
 
@@ -158,7 +137,7 @@ io.on('connection', (socket) => {
 
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
-        const socketEvent = { event: 'ice-candidates', data: icecandidate };
+        const socketEvent = { event: 'ice-candidate', data: icecandidate };
         client.send(JSON.stringify(socketEvent));
       }
     });

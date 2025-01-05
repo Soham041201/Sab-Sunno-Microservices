@@ -12,7 +12,6 @@ import (
 	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/internal/webRTC"
 	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/utils"
 	"github.com/gorilla/websocket"
-	"github.com/pion/webrtc/v3"
 )
 
 func main() {
@@ -51,25 +50,14 @@ func main() {
 					fmt.Println("Error unmarshaling SocketEvent:", err)
 					return // Or take other appropriate action
 				}
-				if string(data.Event) == "offer" {
-					var sessionOffer webrtc.SessionDescription
-					// Attempt to unmarshal the data as a SessionDescription
-					err := json.Unmarshal(data.Data, &sessionOffer)
-					if err == nil {
-						// Valid SDP object, proceed with WebRTC setup
-						webRTC.SetupWebRTCForConnection(sessionOffer, c)
-					} else {
-						// Handle invalid SDP or other data type gracefully
-						fmt.Println("Error unmarshaling data as SessionDescription:", err)
-						// You might consider checking for other known data types here if applicable
-					}
+				if string(data.Event) == "offer" || string(data.Event) == "ice-candidate" {
+					webRTC.SetupWebRTCForConnection(data, c)
 				} else {
-					// Handle other SocketEvents
 					fmt.Println("Unhandled SocketEvent:", data.Event)
 				}
 			} else {
 				// Handle messages that are not valid SocketEvents
-				fmt.Println("Invalid SocketEvent received")
+				fmt.Println("Invalid SocketEvent received", string(message))
 			}
 		}
 	}()

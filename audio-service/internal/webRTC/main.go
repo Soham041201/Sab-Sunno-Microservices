@@ -10,7 +10,7 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
-func SetupWebRTCForConnection(clientOffer webrtc.SessionDescription, c *websocket.Conn) {
+func SetupWebRTCForConnection(socketEvent utils.SocketEvent, c *websocket.Conn) error {
 	// Prepare the configuration
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
@@ -23,9 +23,9 @@ func SetupWebRTCForConnection(clientOffer webrtc.SessionDescription, c *websocke
 	// Create a new RTCPeerConnection
 	peerConnection, err := webrtc.NewPeerConnection(config)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("creating peer connection: %w", err)
 	}
-	defer peerConnection.Close()
+	defer peerConnection.Close() // Close connection on exit
 
 	// Handle ICE candidates
 	peerConnection.OnICECandidate(func(candidate *webrtc.ICECandidate) {
@@ -34,12 +34,11 @@ func SetupWebRTCForConnection(clientOffer webrtc.SessionDescription, c *websocke
 		}
 
 		candidateJSON, err := json.Marshal(candidate.ToJSON())
-
 		if err != nil {
 			log.Println("error marshaling ice candidate", err)
 			return
 		}
-		fmt.Println("ICE Candidate:", string(candidateJSON)) // Send this to the client
+		fmt.Println("ICE Candidate:", string(candidateJSON))
 		socketEvent := utils.SocketEvent{
 			Event: "ice-candidate",
 			Data:  candidateJSON,
@@ -47,46 +46,70 @@ func SetupWebRTCForConnection(clientOffer webrtc.SessionDescription, c *websocke
 		c.WriteJSON(socketEvent)
 	})
 
-	// Handle data channel messages
+	// Handle data channel messages (same as before)
 	peerConnection.OnDataChannel(func(d *webrtc.DataChannel) {
 		fmt.Printf("New DataChannel %s %d\n", d.Label(), d.ID())
 
-		// Register channel opening handling
 		d.OnOpen(func() {
 			fmt.Printf("Data channel '%s'-'%d' open.\n", d.Label(), d.ID())
 			d.SendText("Hello, Client!")
 		})
 
-		// Register text message handling
 		d.OnMessage(func(msg webrtc.DataChannelMessage) {
 			fmt.Printf("Message from DataChannel '%s': '%s'\n", d.Label(), string(msg.Data))
 		})
 	})
 
-	// Receive offer from client (this is a placeholder for your signaling mechanism)
+	// Handle offer and answer
+	switch socketEvent.Event {
+	case "offer":
+		var offer webrtc.SessionDescription
+		err := json.Unmarshal(socketEvent.Data, &offer)
+		if err != nil {
+			return fmt.Errorf("unmarshaling offer: %w", err)
+		}
 
-	// Set remote description
-	err = peerConnection.SetRemoteDescription(clientOffer)
-	if err != nil {
-		log.Fatal(err)
+		err = peerConnection.SetRemoteDescription(offer)
+		if err != nil {
+			return fmt.Errorf("setting remote description: %w", err)
+		}
+
+		answer, err := peerConnection.CreateAnswer(nil)
+		if err != nil {
+			return fmt.Errorf("creating answer: %w", err)
+		}
+
+		err = peerConnection.SetLocalDescription(answer)
+		if err != nil {
+			return fmt.Errorf("setting local description: %w", err)
+		}
+
+		answerBytes, err := json.Marshal(answer)
+		if err != nil {
+			return fmt.Errorf("marshaling answer: %w", err)
+		}
+		socketEvent := utils.SocketEvent{
+			Event: "answer",
+			Data:  answerBytes,
+		}
+		c.WriteJSON(socketEvent)
+
+	case "ice-candidate":
+		fmt.Println("Received ICE Candidate from React", string(socketEvent.Data))
+		var candidate webrtc.ICECandidateInit
+		err := json.Unmarshal(socketEvent.Data, &candidate)
+		if err != nil {
+			return fmt.Errorf("unmarshaling ice candidate: %w", err)
+		}
+		fmt.Println("Unmarshaled ICE Candidate", candidate)
+		err = peerConnection.AddICECandidate(candidate)
+		if err != nil {
+			return fmt.Errorf("adding ice candidate: %w", err)
+		}
+
+	default:
+		return fmt.Errorf("invalid event type: %s", socketEvent.Event)
 	}
 
-	// Create answer
-	answer, err := peerConnection.CreateAnswer(nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Sets the LocalDescription of the local peer
-	err = peerConnection.SetLocalDescription(answer)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Answer SDP:\n", answer.SDP) // Send this answer to the client
-
-	c.WriteJSON(answer)
-
-	// Block forever
-	// select {}
+	select {}
 }
