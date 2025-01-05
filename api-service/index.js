@@ -7,10 +7,40 @@ require('dotenv').config();
 const server = require('http').createServer(app);
 const chatServer = require('./SunnoChat/chatServer');
 const routes = require('./routes');
+const WebSocket = require('ws'); // Import the ws library
+
 const {
   fetchEphimerialToken,
   sendLocalDescriptionToOpenAi,
 } = require('./openai');
+const wss = new WebSocket.Server({ port: 8001, path: '/ws' });
+
+wss.on('connection', (ws) => {
+  console.log('Client connected');
+
+  const message = { event: 'connected', data: 'Welcome to sab sunno' };
+  ws.send(JSON.stringify(message));
+
+  ws.on('message', (message) => {
+    console.log(`Received: ${message}`);
+
+    wss.clients.forEach((client) => {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+
+    ws.send(`Server received: ${message}`);
+  });
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+});
 
 const io = require('socket.io')(server, {
   cors: {
@@ -39,9 +69,13 @@ io.on('connection', (socket) => {
     'open-ai-offer',
     async ({ peerId, sessionDescription: offer, token }) => {
       console.log('open-ai-offer', { offer, token });
-      const answer = await sendLocalDescriptionToOpenAi({ offer, token });
+      // const answer = await sendLocalDescriptionToOpenAi({ offer, token });
       console.log('open-ai-answer', { peerId, sessionDescription: answer });
-
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send('From SocketIO: ' + msg);
+        }
+      });
       // socket.emit('open-ai-answer', { peerId, sessionDescription: answer });
     }
   );
