@@ -50,8 +50,10 @@ func main() {
 					fmt.Println("Error unmarshaling SocketEvent:", err)
 					return // Or take other appropriate action
 				}
+				// webRTC.SetupWebRTCForConnection(data, c)
 				if string(data.Event) == "offer" || string(data.Event) == "ice-candidate" {
 					webRTC.SetupWebRTCForConnection(data, c)
+					
 				} else {
 					fmt.Println("Unhandled SocketEvent:", data.Event)
 				}

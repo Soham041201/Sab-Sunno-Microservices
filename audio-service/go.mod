@@ -17,6 +17,7 @@ require (
 	github.com/pion/interceptor v0.1.29 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns v0.0.12 // indirect
+	github.com/pion/opus v0.0.0-20240826153031-e8536fe9e4ca
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.14 // indirect
 	github.com/pion/rtp v1.8.7 // indirect
