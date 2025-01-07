@@ -12,6 +12,7 @@ import (
 	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/internal/webRTC"
 	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/utils"
 	"github.com/gorilla/websocket"
+	"github.com/pion/webrtc/v3"
 )
 
 func main() {
@@ -46,19 +47,31 @@ func main() {
 				var data utils.SocketEvent
 				err := json.Unmarshal(message, &data)
 				if err != nil {
-					// Handle error gracefully (e.g., log the error, send an error message to the client)
 					fmt.Println("Error unmarshaling SocketEvent:", err)
 					return // Or take other appropriate action
 				}
-				// webRTC.SetupWebRTCForConnection(data, c)
-				if string(data.Event) == "offer" || string(data.Event) == "ice-candidate" {
-					webRTC.SetupWebRTCForConnection(data, c)
-					
-				} else {
-					fmt.Println("Unhandled SocketEvent:", data.Event)
+
+				peerConnection := webRTC.SetupWebRTCForConnection(data, c)
+				pc := webRTC.NewWebRtcSocket(c, done, peerConnection)
+				defer peerConnection.Close()
+
+				switch data.Event {
+				case "offer":
+					var offer webrtc.SessionDescription
+					err := json.Unmarshal(data.Data, &offer)
+					if err != nil {
+						fmt.Print("setting remote description: %w", err.Error())
+					}
+					pc.HandlePeerConnectionOffer(offer)
+				case "ice-candidate":
+					pc.HandleIceCandidateSocketEvent(data.Data)
 				}
+
+				peerConnection.OnICECandidate(pc.HandleIceCandidate)
+				peerConnection.OnTrack(pc.HandleTrack)
+				peerConnection.OnDataChannel(pc.HandleDataChannel)
+				peerConnection.OnConnectionStateChange(pc.HandleConnectioChange)
 			} else {
-				// Handle messages that are not valid SocketEvents
 				fmt.Println("Invalid SocketEvent received", string(message))
 			}
 		}

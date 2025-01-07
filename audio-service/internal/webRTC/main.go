@@ -10,23 +10,23 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
-type WebRtcSocket struct {
+type WebRtcPeerConnection struct {
 	c              *websocket.Conn
 	done           chan struct{}
 	peerConnection *webrtc.PeerConnection
 }
 
-func NewWebRtcSocket(c *websocket.Conn, done chan struct{}, pc *webrtc.PeerConnection) *WebRtcSocket {
-	return &WebRtcSocket{
+func NewWebRtcSocket(c *websocket.Conn, done chan struct{}, pc *webrtc.PeerConnection) *WebRtcPeerConnection {
+	return &WebRtcPeerConnection{
 		c:              c,
 		done:           done,
 		peerConnection: pc,
 	}
 }
 
-func SetupWebRTCForConnection(socketEvent utils.SocketEvent, c *websocket.Conn) {
+func SetupWebRTCForConnection(socketEvent utils.SocketEvent, c *websocket.Conn) *webrtc.PeerConnection {
 	// Prepare the configuration
-	done := make(chan struct{})
+	// done := make(chan struct{})
 
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
@@ -37,40 +37,41 @@ func SetupWebRTCForConnection(socketEvent utils.SocketEvent, c *websocket.Conn) 
 	}
 	// Create a new RTCPeerConnection
 	peerConnection, err := webrtc.NewPeerConnection(config)
-	rtcSocketInstace := NewWebRtcSocket(c, done, peerConnection)
+	// rtcSocketInstace := NewWebRtcSocket(c, done, peerConnection)
 
 	if err != nil {
 		fmt.Print("setting remote description: %w", err.Error())
 
 	}
-	defer peerConnection.Close() // Close connection on exit
+	// defer peerConnection.Close() // Close connection on exit
+	return peerConnection
 
-	// Handle ICE candidates
-	peerConnection.OnICECandidate(rtcSocketInstace.HandleIceCandidate)
-	peerConnection.OnTrack(rtcSocketInstace.HandleTrack)
-	peerConnection.OnDataChannel(rtcSocketInstace.HandleDataChannel)
-	peerConnection.OnConnectionStateChange(rtcSocketInstace.HandleConnectioChange)
+	// // Handle ICE candidates
+	// peerConnection.OnICECandidate(rtcSocketInstace.HandleIceCandidate)
+	// peerConnection.OnTrack(rtcSocketInstace.HandleTrack)
+	// peerConnection.OnDataChannel(rtcSocketInstace.HandleDataChannel)
+	// peerConnection.OnConnectionStateChange(rtcSocketInstace.HandleConnectioChange)
 
-	// Handle offer and answer
-	switch socketEvent.Event {
-	case "offer":
-		var offer webrtc.SessionDescription
-		err := json.Unmarshal(socketEvent.Data, &offer)
-		if err != nil {
-			fmt.Print("setting remote description: %w", err.Error())
+	// // Handle offer and answer
+	// switch socketEvent.Event {
+	// case "offer":
+	// 	var offer webrtc.SessionDescription
+	// 	err := json.Unmarshal(socketEvent.Data, &offer)
+	// 	if err != nil {
+	// 		fmt.Print("setting remote description: %w", err.Error())
 
-		}
-		rtcSocketInstace.HandlePeerConnectionOffer(offer)
-	case "ice-candidate":
-		rtcSocketInstace.HandleIceCandidateSocketEvent(socketEvent.Data)
-	default:
-		fmt.Print("setting remote description: %w", err.Error())
-	}
+	// 	}
+	// 	rtcSocketInstace.HandlePeerConnectionOffer(offer)
+	// case "ice-candidate":
+	// 	rtcSocketInstace.HandleIceCandidateSocketEvent(socketEvent.Data)
+	// default:
+	// 	fmt.Print("setting remote description: %w", err.Error())
+	// }
 
-	<-done // Wait for connection to close
+	// <-done // Wait for connection to close
 }
 
-func (w *WebRtcSocket) HandleIceCandidate(candidate *webrtc.ICECandidate) {
+func (w *WebRtcPeerConnection) HandleIceCandidate(candidate *webrtc.ICECandidate) {
 	if candidate == nil {
 		return
 	}
@@ -87,11 +88,11 @@ func (w *WebRtcSocket) HandleIceCandidate(candidate *webrtc.ICECandidate) {
 	w.c.WriteJSON(socketEvent)
 }
 
-func (w *WebRtcSocket) HandleTrack(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+func (w *WebRtcPeerConnection) HandleTrack(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 	fmt.Println("Track received")
 }
 
-func (w *WebRtcSocket) HandleDataChannel(d *webrtc.DataChannel) {
+func (w *WebRtcPeerConnection) HandleDataChannel(d *webrtc.DataChannel) {
 	fmt.Printf("New DataChannel %s %d\n", d.Label(), d.ID())
 
 	d.OnOpen(func() {
@@ -105,11 +106,11 @@ func (w *WebRtcSocket) HandleDataChannel(d *webrtc.DataChannel) {
 	})
 }
 
-func (w *WebRtcSocket) HandleConnectioChange(state webrtc.PeerConnectionState) {
+func (w *WebRtcPeerConnection) HandleConnectioChange(state webrtc.PeerConnectionState) {
 	fmt.Println("Connection State has changed", state.String())
 	if state == webrtc.PeerConnectionStateDisconnected {
 		fmt.Println("Peer connection is broken. Exiting.", state.String())
-		close(w.done) // Signal completion
+		w.peerConnection.Close()
 
 	}
 
@@ -118,7 +119,7 @@ func (w *WebRtcSocket) HandleConnectioChange(state webrtc.PeerConnectionState) {
 	}
 }
 
-func (w *WebRtcSocket) HandlePeerConnectionOffer(offer webrtc.SessionDescription) {
+func (w *WebRtcPeerConnection) HandlePeerConnectionOffer(offer webrtc.SessionDescription) {
 
 	err := w.peerConnection.SetRemoteDescription(offer)
 	if err != nil {
@@ -146,7 +147,7 @@ func (w *WebRtcSocket) HandlePeerConnectionOffer(offer webrtc.SessionDescription
 	w.c.WriteJSON(socketEvent)
 }
 
-func (w *WebRtcSocket) HandleIceCandidateSocketEvent(data []byte) {
+func (w *WebRtcPeerConnection) HandleIceCandidateSocketEvent(data []byte) {
 	fmt.Println("Received ICE Candidate from React", string(data))
 	var candidate webrtc.ICECandidateInit
 	err := json.Unmarshal(data, &candidate)
