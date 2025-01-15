@@ -45,8 +45,6 @@ func main() {
 		log.Fatal("Error loading .env file") // Handle the error properly
 	}
 	apiKey := os.Getenv("GOOGLE_API_KEY")
-	// GOOGLE_API_KEY := "AIzaSyBCxK-qNk7SxBQ3rXSzKNSd0jTzxBA_-y8"
-	// apiKey := GOOGLE_API_KEY
 	if apiKey == "" {
 		log.Fatal("GOOGLE_API_KEY environment variable not set")
 	}

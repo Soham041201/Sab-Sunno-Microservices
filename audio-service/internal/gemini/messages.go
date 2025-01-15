@@ -1,6 +1,7 @@
 package gemini
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -22,11 +23,37 @@ func (gc *GeminiClient) SendSetup() error {
 		"setup": map[string]interface{}{
 			"model": "models/gemini-2.0-flash-exp",
 			"generation_config": map[string]interface{}{
-				"response_modalities": []string{"TEXT"},
+				"response_modalities": []string{"AUDIO"},
+				"speech_config": map[string]interface{}{
+					"voice_config": map[string]interface{}{
+						"prebuilt_voice_config": map[string]interface{}{
+							"voice_name": "AOEDE",
+						},
+					},
+				},
 			},
 		},
 	}
 	return gc.sendMessage(setupMsg)
+}
+
+func (gc *GeminiClient) SendAudioMessage(data []byte, sampleRate int) error {
+	fmt.Print("sample rate: ", sampleRate, "data", data)
+	fmt.Print("\n base64: ", base64.StdEncoding.EncodeToString(data))
+
+
+	message := map[string]interface{}{
+		"realtime_input": map[string]interface{}{
+			"media_chunks": []map[string]interface{}{
+				{
+					"mimeType": fmt.Sprintf("audio/pcm;rate=%d", 24000),
+					"data":  base64.StdEncoding.EncodeToString(data), // Assuming data is already base64 encoded
+				},
+			},
+		},
+	}
+	return gc.sendMessage(message)
+
 }
 
 func (gc *GeminiClient) SendTextMessage(text string) error {
@@ -63,6 +90,12 @@ func (gc *GeminiClient) ReceiveMessages() (<-chan []byte, <-chan error) {
 		defer close(errorChan)
 		for {
 			_, message, err := gc.conn.ReadMessage()
+			if err != nil {
+				fmt.Print("error", err)
+			}
+			decoded, err := base64.StdEncoding.DecodeString(string(message))
+			fmt.Print("\n message from gcp: ", string(decoded))
+
 			if err != nil {
 				errorChan <- fmt.Errorf("read: %w", err)
 				return

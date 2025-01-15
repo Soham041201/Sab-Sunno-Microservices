@@ -1,17 +1,18 @@
 package webRTC
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
+	"log"
 	"os"
-	"sync"
 	"time"
 
-	"github.com/pion/opus"
+	"github.com/Soham041201/Sab-Sunno-Microservices/audio-service/internal/gemini"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v3"
+	"gopkg.in/hraban/opus.v2"
 )
 
 const (
@@ -25,20 +26,21 @@ const (
 
 // AudioTrackRecorder handles the recording of an audio track to WAV file
 type AudioTrackRecorder struct {
-	opusDecoder opus.Decoder
-	track       *webrtc.TrackRemote
-	samples     []int16
-	sampleLock  sync.Mutex
-	isRecording bool
-	stopChan    chan struct{}
+	track          *webrtc.TrackRemote
+	peerConnection *webrtc.PeerConnection
+	audioData      [][]int16
+	isRecording    bool
+	stopChan       chan struct{}
+	lastTimestamp  uint32
+	sampleRate     int
 }
 
 // NewAudioTrackRecorder creates a new AudioTrackRecorder instance
 func NewAudioTrackRecorder(track *webrtc.TrackRemote) *AudioTrackRecorder {
 	return &AudioTrackRecorder{
-		track:    track,
-		samples:  make([]int16, 0),
-		stopChan: make(chan struct{}),
+		track:     track,
+		audioData: make([][]int16, 0),
+		stopChan:  make(chan struct{}),
 	}
 }
 
@@ -85,7 +87,11 @@ func (a *AudioTrackRecorder) StopRecording(filename string) error {
 	close(a.stopChan)
 	a.isRecording = false
 
-	return a.saveToWAV(filename)
+	if err := SaveAudioToWAV(a.audioData, a.sampleRate, "recorded_audio.wav"); err != nil {
+		log.Fatal("Error saving audio to WAV file:", err)
+	}
+
+	return nil
 }
 
 // readPackets continuously reads RTP packets from the track
@@ -105,6 +111,7 @@ func (a *AudioTrackRecorder) readPackets() {
 			if err := a.processRTPPacket(packet); err != nil {
 				fmt.Printf("error processing RTP packet: %v\n", err)
 			}
+
 		}
 	}
 }
@@ -115,98 +122,184 @@ func (a *AudioTrackRecorder) processRTPPacket(packet *rtp.Packet) error {
 	fmt.Print("packet.Payload: ", packet.Payload, "\n")
 	fmt.Print("track encoding ", a.track.Codec().MimeType, "\n")
 	fmt.Print("track da", a.track.Codec().PayloadType, "\n")
-	a.opusDecoder = opus.NewDecoder() // Assuming 48kHz and 2 channels
+	fmt.Printf("Sample Rate: %d Hz\n", a.track.Codec().ClockRate)
+	fmt.Printf("Channels: %d\n", a.track.Codec().Channels)
+	channels := int(a.track.Codec().Channels)
+	sampleRate := int(a.track.Codec().ClockRate)
+	a.sampleRate = sampleRate
+	frameSizeMs := float32(60) // if you don't know, go with 60 ms. // Default to 60ms if frame duration is not available
+	if packet.Header.Timestamp != 0 {
+		// Calculate frame size based on timestamp difference
+		if a.lastTimestamp == 0 {
+			a.lastTimestamp = packet.Header.Timestamp
+		}
+		frameSizeMs = float32((packet.Header.Timestamp-a.lastTimestamp)*1000) / float32(a.track.Codec().ClockRate)
+		a.lastTimestamp = packet.Header.Timestamp
+	}
+	frameSize := channels * int(frameSizeMs) * sampleRate / 1000
+	pcm := make([]int16, frameSize)
 
-	a.sampleLock.Lock()
-	defer a.sampleLock.Unlock()
+	dec, err := opus.NewDecoder(sampleRate, channels)
 
-	// Decode the Opus payload into PCM samples
-	const maxDecodedSamples = 960 * 2 * 2 // 960 samples/frame, 2 channels, 2 bytes/sample
-	decoded := make([]byte, maxDecodedSamples)
+	if err != nil {
+		fmt.Printf("Error decoding opus packet: %v\n", err)
+	}
 
-	_, isStereo, err := a.opusDecoder.Decode(packet.Payload, decoded)
+	n, err := dec.Decode(packet.Payload, pcm)
+	if err != nil {
+		fmt.Printf("Error decoding opus packet: %v\n", err)
+	}
+	if n == 0 {
+		// Handle cases where no audio data was decoded
+		fmt.Println("Warning: No audio data decoded in this packet.")
+		return nil // Or return an appropriate error
+	}
+
+	fmt.Printf("decoded pcm packet: %d \n ", n)
+	samplesPerChannel := n / channels 
+	allChannels := make([][]int16, channels)
+	for i := 0; i < channels; i++ {
+		allChannels[i] = make([]int16, samplesPerChannel) 
+	}
+	
+	for i := 0; i < samplesPerChannel; i++ { 
+		for j := 0; j < channels; j++ {
+			allChannels[j][i] = pcm[i*channels+j] 
+		}
+	}
+
+	for _, channel := range allChannels {
+		// Convert int16 to bytes (assuming little-endian)
+		bytes := make([]byte, len(channel)*2)
+		for i, sample := range channel {
+			binary.LittleEndian.PutUint16(bytes[i*2:], uint16(sample))
+		}
+		// Send audio data to Gemini
+		err = gemini.HandleGeminiResponse(bytes, sampleRate, a.peerConnection)
+		if err != nil {
+			return fmt.Errorf("error sending audio to Gemini: %w", err)
+		}
+	}
+
+	// _, _, err := decode.Decode(packet.Payload, pcm)
+
+	// gemini.HandleGeminiResponse(int16ToBytes(pcm), sampleRate, a.peerConnection)
+	// if err != nil {
+	// 	fmt.Printf("Error decoding opus packet: %v\n", err)
+	// }
+	// gemini.SendTextMessage(packet.Payload)
+	return nil
+
+}
+
+func writeWAVHeader(w io.Writer, numSamples int, sampleRate int, numChannels int) error {
+	// RIFF chunk
+	_, err := w.Write([]byte("RIFF"))
+	if err != nil {
+		return err
+	}
+	// Chunk size (placeholder)
+	_, err = w.Write([]byte{0, 0, 0, 0})
+	if err != nil {
+		return err
+	}
+	_, err = w.Write([]byte("WAVE"))
 	if err != nil {
 		return err
 	}
 
-	// Determine sample size based on stereo or mono
-	sampleSize := 2
-	if isStereo {
-		sampleSize *= 2
+	// fmt sub-chunk
+	_, err = w.Write([]byte("fmt "))
+	if err != nil {
+		return err
+	}
+	// Sub-chunk size (16 for PCM)
+	_, err = w.Write([]byte{0x10, 0, 0, 0})
+	if err != nil {
+		return err
+	}
+	// Audio format (1 for PCM)
+	_, err = w.Write([]byte{0x01, 0})
+	if err != nil {
+		return err
+	}
+	// Number of channels
+	err = binary.Write(w, binary.LittleEndian, uint16(numChannels))
+	if err != nil {
+		return err
+	}
+	// Sample rate
+	err = binary.Write(w, binary.LittleEndian, uint32(sampleRate))
+	if err != nil {
+		return err
+	}
+	// Byte rate (sample rate * numChannels * bytes per sample)
+	byteRate := sampleRate * numChannels * 2
+	err = binary.Write(w, binary.LittleEndian, uint32(byteRate))
+	if err != nil {
+		return err
+	}
+	// Block align (numChannels * bytes per sample)
+	blockAlign := numChannels * 2
+	err = binary.Write(w, binary.LittleEndian, uint16(blockAlign))
+	if err != nil {
+		return err
+	}
+	// Bits per sample
+	_, err = w.Write([]byte{0x10, 0})
+	if err != nil {
+		return err
 	}
 
-	// Convert the decoded PCM samples to int16 and append to the sample buffer
-	for i := 0; i < len(decoded); i += sampleSize {
-		if i+1 >= len(decoded) {
-			break
-		}
-		sample := int16(binary.LittleEndian.Uint16(decoded[i:]))
-		fmt.Print("sample: ", sample)
-		a.samples = append(a.samples, sample)
+	// data sub-chunk
+	_, err = w.Write([]byte("data"))
+	if err != nil {
+		return err
+	}
+	// Sub-chunk size (numSamples * numChannels * bytes per sample)
+	dataSize := numSamples * numChannels * 2
+	err = binary.Write(w, binary.LittleEndian, uint32(dataSize))
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 // saveToWAV saves the recorded audio samples to a WAV file
-func (a *AudioTrackRecorder) saveToWAV(filename string) error {
-	a.sampleLock.Lock()
-	defer a.sampleLock.Unlock()
-
-	// Create WAV file
+func SaveAudioToWAV(audioData [][]int16, sampleRate int, filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
-		return fmt.Errorf("failed to create WAV file: %v", err)
+		return fmt.Errorf("error creating WAV file: %w", err)
 	}
 	defer file.Close()
 
-	// Calculate sizes
-	dataSize := len(a.samples) * 2 // 2 bytes per sample
-	fileSize := 36 + dataSize
-
 	// Write WAV header
-	header := &bytes.Buffer{}
-
-	// RIFF header
-	header.WriteString("RIFF")
-	binary.Write(header, binary.LittleEndian, uint32(fileSize))
-	header.WriteString("WAVE")
-
-	// Format chunk
-	header.WriteString("fmt ")
-	binary.Write(header, binary.LittleEndian, uint32(16)) // Chunk size
-	binary.Write(header, binary.LittleEndian, uint16(1))  // Audio format (PCM)
-	binary.Write(header, binary.LittleEndian, uint16(AudioChannels))
-	binary.Write(header, binary.LittleEndian, uint32(AudioSampleRate))
-	binary.Write(header, binary.LittleEndian, uint32(AudioSampleRate*AudioChannels*BitsPerSample/8)) // Byte rate
-	binary.Write(header, binary.LittleEndian, uint16(AudioChannels*BitsPerSample/8))                 // Block align
-	binary.Write(header, binary.LittleEndian, uint16(BitsPerSample))
-
-	// Data chunk
-	header.WriteString("data")
-	binary.Write(header, binary.LittleEndian, uint32(dataSize))
-
-	// Write header to file
-	if _, err := file.Write(header.Bytes()); err != nil {
-		return fmt.Errorf("failed to write WAV header: %v", err)
+	err = writeWAVHeader(file, len(audioData[0]), sampleRate, len(audioData))
+	if err != nil {
+		return fmt.Errorf("error writing WAV header: %w", err)
 	}
 
-	// Write samples to file
-	for _, sample := range a.samples {
-		err := binary.Write(file, binary.LittleEndian, sample)
-		if err != nil {
-			return fmt.Errorf("failed to write audio sample: %v", err)
+	// Write audio data
+	for _, channel := range audioData {
+		for _, sample := range channel {
+			err = binary.Write(file, binary.LittleEndian, sample)
+			if err != nil {
+				return fmt.Errorf("error writing audio data: %w", err)
+			}
 		}
 	}
 
 	return nil
 }
 
-func handleTrack(track *webrtc.TrackRemote, peerConnection *webrtc.PeerConnection) {
+func HandleTrack(track *webrtc.TrackRemote, peerConnection *webrtc.PeerConnection) {
 	// Check if it's an audio track
 	if track.Kind() == webrtc.RTPCodecTypeAudio {
 		// Create new recorder instance
 		recorder := NewAudioTrackRecorder(track)
+
+		recorder.peerConnection = peerConnection
 
 		// Start recording
 		if err := recorder.StartRecording(peerConnection); err != nil {

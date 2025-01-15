@@ -25,8 +25,6 @@ func NewWebRtcSocket(c *websocket.Conn, done chan struct{}, pc *webrtc.PeerConne
 }
 
 func SetupWebRTCForConnection(socketEvent utils.SocketEvent, c *websocket.Conn) *webrtc.PeerConnection {
-	// Prepare the configuration
-	// done := make(chan struct{})
 
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
@@ -35,40 +33,16 @@ func SetupWebRTCForConnection(socketEvent utils.SocketEvent, c *websocket.Conn) 
 			},
 		},
 	}
-	// Create a new RTCPeerConnection
+
 	peerConnection, err := webrtc.NewPeerConnection(config)
-	// rtcSocketInstace := NewWebRtcSocket(c, done, peerConnection)
 
 	if err != nil {
 		fmt.Print("setting remote description: %w", err.Error())
 
 	}
-	// defer peerConnection.Close() // Close connection on exit
+
 	return peerConnection
 
-	// // Handle ICE candidates
-	// peerConnection.OnICECandidate(rtcSocketInstace.HandleIceCandidate)
-	// peerConnection.OnTrack(rtcSocketInstace.HandleTrack)
-	// peerConnection.OnDataChannel(rtcSocketInstace.HandleDataChannel)
-	// peerConnection.OnConnectionStateChange(rtcSocketInstace.HandleConnectioChange)
-
-	// // Handle offer and answer
-	// switch socketEvent.Event {
-	// case "offer":
-	// 	var offer webrtc.SessionDescription
-	// 	err := json.Unmarshal(socketEvent.Data, &offer)
-	// 	if err != nil {
-	// 		fmt.Print("setting remote description: %w", err.Error())
-
-	// 	}
-	// 	rtcSocketInstace.HandlePeerConnectionOffer(offer)
-	// case "ice-candidate":
-	// 	rtcSocketInstace.HandleIceCandidateSocketEvent(socketEvent.Data)
-	// default:
-	// 	fmt.Print("setting remote description: %w", err.Error())
-	// }
-
-	// <-done // Wait for connection to close
 }
 
 func (w *WebRtcPeerConnection) HandleIceCandidate(candidate *webrtc.ICECandidate) {
@@ -90,6 +64,7 @@ func (w *WebRtcPeerConnection) HandleIceCandidate(candidate *webrtc.ICECandidate
 
 func (w *WebRtcPeerConnection) HandleTrack(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 	fmt.Println("Track received")
+	HandleTrack(track, w.peerConnection)
 }
 
 func (w *WebRtcPeerConnection) HandleDataChannel(d *webrtc.DataChannel) {

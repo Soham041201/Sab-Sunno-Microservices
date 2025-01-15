@@ -37,7 +37,7 @@ func SetupGeminiServiceToGenerateResponsee() (*GeminiClient, error) {
 
 }
 
-func HandleGeminiResponse(text string, d *webrtc.DataChannel) {
+func HandleGeminiResponse(data []byte, sampleRate int, d *webrtc.PeerConnection) error {
 
 	client, err := SetupGeminiServiceToGenerateResponsee() // Correct function name
 	if err != nil {
@@ -45,7 +45,7 @@ func HandleGeminiResponse(text string, d *webrtc.DataChannel) {
 	}
 	defer client.Close()
 
-	err = client.SendTextMessage(text) // Correct function name
+	err = client.SendAudioMessage(data, sampleRate) // Correct function name
 	if err != nil {
 		log.Fatal("text message:", err)
 	}
@@ -63,18 +63,19 @@ func HandleGeminiResponse(text string, d *webrtc.DataChannel) {
 			if err != nil {
 				log.Fatalf("Error unmarshaling JSON: %v, Raw message: %s", err, message)
 			}
+			fmt.Print("response", response)
 			if len(response.ServerContent.ModelTurn.Parts) > 0 {
 				fmt.Println(response.ServerContent)
-				d.SendText(response.ServerContent.ModelTurn.Parts[0].Text)
+				// d.SendText(response.ServerContent.ModelTurn.Parts[0].Text)
 			} else {
 				fmt.Println("No text parts found in the response.")
 			}
 		case err := <-errorChan:
 			log.Println("receive error:", err)
-			return
+			return fmt.Errorf("error from gemini %d", err)
 		case <-interrupt:
 			fmt.Println("interrupt")
-			return
+			return fmt.Errorf("error from gemini %d", err)
 		}
 	}
 }
